@@ -6,6 +6,7 @@
     .globl _flashrom_chip_write_bankswitch
     .globl _flashrom_block_read_bankswitch
     .globl _flashrom_block_write_bankswitch
+    .globl _flashrom_block_verify_bankswitch
     .globl _default_mem_bank
 
 ROMWBW_SETBNK .equ 0xFC06
@@ -90,6 +91,31 @@ _flashrom_block_read_bankswitch:
     call targetlength
     ldir            ; copy copy copy
     jr putback
+
+_flashrom_block_verify_bankswitch:
+    call selectaddr
+    call targetlength
+    ; DE = source address in RAM (pointer into buffer)
+    ; HL = destination address in flash (pointer into banked memory)
+    ; BC = byte counter (# bytes remaining to program)
+cmpnext:
+    ld a, b
+    or c
+    jr z, cmpok
+    ld a, (de)
+    cp (hl)
+    jr nz, cmpfail
+    inc de
+    inc hl
+    dec bc
+    jr cmpnext
+cmpok:
+    ld l, #1        ; return true
+    jr putback
+cmpfail:
+    ld l, #0        ; return false
+    jr putback
+
 
 _flashrom_block_write_bankswitch:
     call selectaddr

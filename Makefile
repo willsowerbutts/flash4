@@ -5,8 +5,8 @@ SDASOPTS=-plosff
 
 SDCCOPTS=--std-sdcc99 --no-std-crt0 -mz80 --opt-code-size --max-allocs-per-node 10000 --Werror --stack-auto
 
-CSRCS =  flash4.c libcpm.c z180dma2.c
-ASRCS =  runtime0.s putchar.s libcpm2.s z180dma.s bankswitch.s detectcpu.s buffers.s
+CSRCS =  flash4.c libcpm2.c z180dma2.c bankswitch2.c
+ASRCS =  runtime0.s putchar.s libcpm.s z180dma.s bankswitch.s detectcpu.s buffers.s
 
 COBJS = $(CSRCS:.c=.rel)
 AOBJS = $(ASRCS:.s=.rel)

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "z180dma.h"
+#include "buffers.h"
 
 #define Z180_IO_BASE (0x40)
 #include <z180/z180.h>
@@ -47,6 +48,27 @@ unsigned char flashrom_chip_read_z180dma(unsigned long address)
 void flashrom_block_read_z180dma(unsigned long address, unsigned char *buffer, unsigned int length)
 {
     dma_memory(flashrom_to_physical(address), virtual_to_physical(buffer), length);
+}
+
+bool flashrom_block_verify_z180dma(unsigned long address, unsigned char *buffer, unsigned int length)
+{
+    unsigned int bytes;
+
+    while(length > 0){
+        if(length >= CPM_BLOCK_SIZE)
+            bytes = CPM_BLOCK_SIZE;
+        else
+            bytes = length;
+        dma_memory(flashrom_to_physical(address), virtual_to_physical(rombuffer), bytes);
+        if(memcmp(rombuffer, buffer, bytes))
+            return false;
+
+        address += bytes;
+        buffer += bytes;
+        length -= bytes;
+    }
+
+    return true;
 }
 
 void flashrom_program_byte_z180dma(unsigned long address, unsigned char value)

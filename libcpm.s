@@ -1,4 +1,4 @@
-    .module libcpm2
+    .module libcpm
 
     .globl _cpm_f_open
     .globl _cpm_f_create
