@@ -9,7 +9,6 @@
     .globl _default_mem_bank
     .globl _bank_switch_method
 
-
 ROMWBW_SETBNK  .equ 0xFC06
 ROMWBW_GETBNK  .equ 0xFC09
 UNABIOS_GETBNK .equ 0xFA
@@ -27,7 +26,7 @@ loadbank:
     ; well, this is unexpected
     ret
 loadbank_romwbw:
-    ld c, l
+    ld a, l
     call #ROMWBW_SETBNK
     ret
 loadbank_unabios:
@@ -77,7 +76,7 @@ bankready:
     ld h, #0
     ld l, a
     call loadbank
-    pop hl
+    pop hl          ; recover pointer to data on stack
     ld d, (hl)
     res 7, d
     dec hl          ; hl is now sp+4
@@ -94,7 +93,7 @@ putback:
     ; put our memory back in the banked region
     ld hl, (_default_mem_bank)
     call loadbank
-    pop hl ; recover value read from flash (into L, H gets the F register)
+    pop hl ; recover value read from flash
     ret
 
 _flashrom_chip_write_bankswitch:

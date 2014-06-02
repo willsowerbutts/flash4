@@ -4,7 +4,7 @@
 #include "bankswitch.h"
 
 unsigned int default_mem_bank;
-unsigned char bank_switch_method;
+unsigned char bank_switch_method = 0xff;
 
 void init_bankswitch(unsigned char method)
 {
