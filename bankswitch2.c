@@ -3,9 +3,11 @@
 #include <stdbool.h>
 #include "bankswitch.h"
 
-unsigned char default_mem_bank;
+unsigned int default_mem_bank;
+unsigned char bank_switch_method;
 
-void init_bankswitch(void)
+void init_bankswitch(unsigned char method)
 {
-    default_mem_bank = romwbw_sys_getbnk();
+    bank_switch_method = method;
+    default_mem_bank = bankswitch_get_current_bank();
 }

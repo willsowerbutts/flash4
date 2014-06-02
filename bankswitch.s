@@ -1,35 +1,68 @@
     .module bankswitch
 
-    .globl _romwbw_sys_getbnk
-    .globl _romwbw_sys_setbnk
+    .globl _bankswitch_get_current_bank
     .globl _flashrom_chip_read_bankswitch
     .globl _flashrom_chip_write_bankswitch
     .globl _flashrom_block_read_bankswitch
     .globl _flashrom_block_write_bankswitch
     .globl _flashrom_block_verify_bankswitch
     .globl _default_mem_bank
+    .globl _bank_switch_method
 
-ROMWBW_SETBNK .equ 0xFC06
-ROMWBW_GETBNK .equ 0xFC09
+
+ROMWBW_SETBNK  .equ 0xFC06
+ROMWBW_GETBNK  .equ 0xFC09
+UNABIOS_GETBNK .equ 0xFA
+UNABIOS_SETBNK .equ 0xFB
 
     .area _CODE
 
-_romwbw_sys_setbnk:
-    ld hl, #2
-    add hl, sp
-    ld c, (hl)
+    ; load the page in register HL into the banked region (lower 32K)
+loadbank:
+    ld a, (_bank_switch_method)
+    or a
+    jr z, loadbank_romwbw
+    dec a
+    jr z, loadbank_unabios
+    ; well, this is unexpected
+    ret
+loadbank_romwbw:
+    ld c, l
     call #ROMWBW_SETBNK
     ret
+loadbank_unabios:
+    ld c, #UNABIOS_SETBNK
+    ex de, hl ; move page number into DE
+    rst 8
+    ret
 
-_romwbw_sys_getbnk:
+    ; return the currently loaded page number
+_bankswitch_get_current_bank:
+    ld a, (_bank_switch_method)
+    or a
+    jr z, getbank_romwbw
+    dec a
+    jr z, getbank_unabios
+    ; well, this is unexpected
+    ld hl, #0
+    ret
+getbank_romwbw:
     call #ROMWBW_GETBNK
+    ; returns page number in A
+    ld h, #0
     ld l, a
+    ret
+getbank_unabios:
+    ld c, #UNABIOS_GETBNK
+    rst 8
+    ; returns page number in DE
+    ex de, hl
     ret
 
 selectaddr:
     ; 32-bit address is at sp+4 through sp+7
-	ld hl,#6        ; we're interested initially in sp+6 and sp+5
-	add	hl,sp
+    ld hl,#6        ; we're interested initially in sp+6 and sp+5
+    add hl,sp
     ; compute (address >> 15) & 0x0f
     ld a, (hl)      ; top three bits we want are in here
     and #0x7        ; mask off low three bits
@@ -40,9 +73,10 @@ selectaddr:
     or #1           ; set low bit if required
 bankready:
     ; now A contains (address >> 15) & 0x0f -- let's select that bank!
-    ld c, a
     push hl         ; we'll need this in a moment
-    call #ROMWBW_SETBNK
+    ld h, #0
+    ld l, a
+    call loadbank
     pop hl
     ld d, (hl)
     res 7, d
@@ -58,9 +92,8 @@ _flashrom_chip_read_bankswitch:
 putback:
     push hl
     ; put our memory back in the banked region
-	ld a, (_default_mem_bank)
-    ld c, a
-    call #ROMWBW_SETBNK
+    ld hl, (_default_mem_bank)
+    call loadbank
     pop hl ; recover value read from flash (into L, H gets the F register)
     ret
 

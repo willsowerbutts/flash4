@@ -30,9 +30,9 @@ typedef struct {
 } flashrom_chip_t; 
 
 /* the strategy flags describe quirks for programming particular chips */
-#define ST_NORMAL               (0x00) /* default -- no special strategy required */
-#define ST_PROGRAM_SECTORS      (0x01) /* strategy byte, bit 0: program whole sectors (Atmel AT29C style) */
-#define ST_ERASE_CHIP           (0x02) /* strategy byte, bit 1: erase whole chip (sector_count must be exactly 1) */
+#define ST_NORMAL               (0x00) /* default: no special strategy required */
+#define ST_PROGRAM_SECTORS      (0x01) /* bit 0: program sector (not byte) at a time (Atmel AT29C style) */
+#define ST_ERASE_CHIP           (0x02) /* bit 1: erase whole chip (sector_count must be exactly 1) instead of individual sectors */
 
 static flashrom_chip_t flashrom_chips[] = {
     { 0x0120, "29F010",      128,    8, ST_NORMAL },
@@ -398,13 +398,9 @@ void main(int argc, char *argv[])
             flashrom_block_verify = flashrom_block_verify_z180dma;
             break;
         case ACCESS_UNABIOS:
-            /* fiddle bank switching vectors for UNA BIOS */
-            printf("UNA BIOS is not supported at this time.\n");
-            return;
-            /* fall through */
         case ACCESS_ROMWBW:
             printf("Using %s bank switching.\n", (access == ACCESS_ROMWBW) ? "RomWBW" : "UNA BIOS");
-            init_bankswitch();
+            init_bankswitch( (access == ACCESS_ROMWBW) ? BANKSWITCH_ROMWBW : BANKSWITCH_UNABIOS );
             flashrom_chip_read    = flashrom_chip_read_bankswitch;
             flashrom_chip_write   = flashrom_chip_write_bankswitch;
             flashrom_block_read   = flashrom_block_read_bankswitch;

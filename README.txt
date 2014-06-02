@@ -89,6 +89,8 @@ method automatically.
 = Supported chips and features =
 
 FLASH4 will interrogate your flash ROM chip to identify it automatically.
+FLASH4 assumes that you have a single flash ROM device and it is located at the
+bottom of the physical memory map.
 
 FLASH4 does not support setting or resetting the protection bits on individual
 sectors within Flash ROM devices. If your Flash ROM chip has protected sectors

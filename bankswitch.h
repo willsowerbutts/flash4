@@ -1,10 +1,11 @@
 #ifndef __ROMWBW_DOT_H__
 #define __ROMWBW_DOT_H__
 
-void init_bankswitch(void);
+#define BANKSWITCH_ROMWBW   0
+#define BANKSWITCH_UNABIOS  1
 
-unsigned char romwbw_sys_getbnk(void);
-void romwbw_sys_setbnk(unsigned char bank);
+void init_bankswitch(unsigned char method);
+unsigned int bankswitch_get_current_bank(void);
 
 void flashrom_chip_write_bankswitch(unsigned long address, unsigned char value);
 unsigned char flashrom_chip_read_bankswitch(unsigned long address);
@@ -12,6 +13,7 @@ void flashrom_block_read_bankswitch(unsigned long address, unsigned char *buffer
 void flashrom_block_write_bankswitch(unsigned long address, unsigned char *buffer, unsigned int length);
 bool flashrom_block_verify_bankswitch(unsigned long address, unsigned char *buffer, unsigned int length);
 
-extern unsigned char default_mem_bank;
+extern unsigned int default_mem_bank;
+extern unsigned char bank_switch_method;
 
 #endif
