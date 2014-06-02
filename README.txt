@@ -1,11 +1,15 @@
-FLASH4 (c) 2014 William R Sowerbutts <will@sowerbutts.com>
+
+           FLASH4 (c) 2014 William R Sowerbutts <will@sowerbutts.com>
+                           http://sowerbutts.com/z80/
 
 = Warning =
 
-** THIS SOFTWARE IS STILL IN DEVELOPMENT ** It is only well tested with 39F040
-devices on the Mark IV SBC running RomWBW. I believe it should work on other
-systems but I do not have any to test with. If it works for you, please let me
-know. If it breaks please also let me know so I can fix it! 
+** THIS SOFTWARE IS NOT YET WIDELY TESTED ** 
+
+It is only well tested with 39F040 devices on the Mark IV SBC running RomWBW. I
+believe it should work on other systems but I do not have any to test with. If
+it works for you, please let me know. If it breaks please also let me know so I
+can fix it! 
 
 Until it is more widely tested please ensure you have some other means to
 reprogram your flash ROM before trusting FLASH4.
@@ -16,9 +20,6 @@ reprogram your flash ROM before trusting FLASH4.
 FLASH4 is a CP/M program which can read, write and verify Flash ROM contents to
 or from an image file stored on a CP/M filesystem. It is intended for in-system
 programming of Flash ROM chips on N8VEM Z80 and Z180 systems.
-
-FLASH4 is licensed under the The GNU General Public License version 3 (see
-included "LICENSE.txt" file)
 
 FLASH4 aims to support a range of Flash ROM chips. Ideally I would like to
 support all Flash ROM chips that are in use in Z80/Z180 N8VEM machines. If
@@ -135,3 +136,13 @@ in Linux and I imagine it can be easily modified to build in Windows.
 
 You may need to adjust the path to the SDCC libraries in the Makefile if your
 sdcc installation is not in /usr/local
+
+
+= License =
+
+FLASH4 is licensed under the The GNU General Public License version 3 (see
+included "LICENSE.txt" file). 
+
+FLASH4 is provided with NO WARRANTY. In no event will the author be liable for
+any damages. Use of this program is at your own risk. May cause rifts in space
+and time.

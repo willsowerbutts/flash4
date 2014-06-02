@@ -67,6 +67,17 @@ void (*flashrom_block_read)(unsigned long address, unsigned char *buffer, unsign
 bool (*flashrom_block_verify)(unsigned long address, unsigned char *buffer, unsigned int length) = NULL;
 void (*flashrom_block_write)(unsigned long address, unsigned char *buffer, unsigned int length) = NULL;
 
+/* useful to provide some feedback that something is actually happening with large-sector devices */
+#define SPINNER_LENGTH 4
+static char spinner_char[SPINNER_LENGTH] = {'|', '/', '-', '\\'};
+static unsigned char spinner_pos=0;
+
+char spinner(void)
+{
+    spinner_pos = (spinner_pos + 1) % SPINNER_LENGTH;
+    return spinner_char[spinner_pos];
+}
+
 void abort_and_solicit_report(void)
 {
     printf("Please email will@sowerbutts.com if you would like support for your\nsystem added to this program.\n");
@@ -260,7 +271,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
     }
 
     for(sector=0; sector < flashrom_type->sector_count; sector++){
-        printf("\r%s: sector %d/%d ", perform_write ? "Write" : "Verify", sector, flashrom_type->sector_count);
+        printf("\r%s: sector %d/%d   ", perform_write ? "Write" : "Verify", sector, flashrom_type->sector_count);
 
         /* verify sector */
         flash_address = flashrom_sector_address(sector);
@@ -268,6 +279,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         verify_okay = true;
 
         for(subsector=0; subsector < subsectors_per_sector; subsector++){
+            printf("\x08%c", spinner());
             read_data_from_file(infile, block, blocks_per_subsector);
 
             if(!flashrom_block_verify(flash_address, filebuffer, bytes_per_subsector)){
@@ -309,6 +321,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                             break;
                         block += blocks_per_subsector;
                         flash_address += bytes_per_subsector;
+                        printf("\x08%c", spinner());
                         read_data_from_file(infile, block, blocks_per_subsector);
                     }
                 }
