@@ -11,14 +11,15 @@
  * TODO
  * - memory signature to detect UNABIOS? waiting on info from John.
  *   - make get/set bank vectors runtime switchable
- * - larger buffer size (4K?) to enable support for large sector atmel devices
- *   - when possible, avoid double read from disk on verify/write cycle
  *
  * 2014-05-29 Z180 DMA baseline time to reflash entire ROM plus verify from CF media is 1m49s (write random.img, then time write flash8.img)
  * 2014-05-31 Bank switched memory time same (compiler generated code) is 1m14s
  * 2014-05-31 Bank switched memory time same (hand assembly code) is 25s
  * 2014-06-01 Bank switched memory time same (hand assembly code, improved verify etc) is 21s
  */
+
+typedef enum { ACTION_UNKNOWN, ACTION_READ, ACTION_WRITE, ACTION_VERIFY } action_t;
+typedef enum { ACCESS_NONE, ACCESS_AUTO, ACCESS_ROMWBW, ACCESS_UNABIOS, ACCESS_Z180DMA } access_t;
 
 typedef struct {
     unsigned int chip_id;
@@ -28,13 +29,14 @@ typedef struct {
     unsigned char strategy;
 } flashrom_chip_t; 
 
-/* the strategy byte describes how to program a given chip */
+/* the strategy flags describe quirks for programming particular chips */
+#define ST_NORMAL               (0x00) /* default -- no special strategy required */
 #define ST_PROGRAM_SECTORS      (0x01) /* strategy byte, bit 0: program whole sectors (Atmel AT29C style) */
 #define ST_ERASE_CHIP           (0x02) /* strategy byte, bit 1: erase whole chip (sector_count must be exactly 1) */
 
 static flashrom_chip_t flashrom_chips[] = {
-    { 0x0120, "29F010",      128,    8, 0 },
-    { 0x01A4, "29F040",      512,    8, 0 },
+    { 0x0120, "29F010",      128,    8, ST_NORMAL },
+    { 0x01A4, "29F040",      512,    8, ST_NORMAL },
     { 0x1F04, "AT49F001NT", 1024,    1, ST_ERASE_CHIP }, /* multiple but unequal sized sectors */
     { 0x1F05, "AT49F001N",  1024,    1, ST_ERASE_CHIP }, /* multiple but unequal sized sectors */
     { 0x1F07, "AT49F002N",  2048,    1, ST_ERASE_CHIP }, /* multiple but unequal sized sectors */
@@ -44,12 +46,12 @@ static flashrom_chip_t flashrom_chips[] = {
     { 0x1FA4, "AT29C040",      2, 2048, ST_PROGRAM_SECTORS },
     { 0x1FD5, "AT29C010",      1, 1024, ST_PROGRAM_SECTORS },
     { 0x1FDA, "AT29C020",      2, 1024, ST_PROGRAM_SECTORS },
-    { 0x2020, "M29F010",     128,    8, 0 },
-    { 0x20E2, "M29F040",     512,    8, 0 },
-    { 0xBFB5, "39F010",       32,   32, 0 },
-    { 0xBFB6, "39F020",       32,   64, 0 },
-    { 0xBFB7, "39F040",       32,  128, 0 },
-    { 0xC2A4, "MX29F040",    512,    8, 0 },
+    { 0x2020, "M29F010",     128,    8, ST_NORMAL },
+    { 0x20E2, "M29F040",     512,    8, ST_NORMAL },
+    { 0xBFB5, "39F010",       32,   32, ST_NORMAL },
+    { 0xBFB6, "39F020",       32,   64, ST_NORMAL },
+    { 0xBFB7, "39F040",       32,  128, ST_NORMAL },
+    { 0xC2A4, "MX29F040",    512,    8, ST_NORMAL },
     /* terminate the list */
     { 0x0000, NULL,            0,    0, 0 }
 };
@@ -231,9 +233,10 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
     unsigned long flash_address;
     bool verify_okay;
 
-    /* We verify or program at most one sector at once. If a sector is larger than
-       our memory buffer for data read from disk, we divide it up into multiple
-       "subsectors".                                                               */
+    /* We verify or program at most one sector at once. If a sector is larger
+       than our memory buffer for data read from disk, we divide it up into
+       multiple "subsectors". If a sector already contains the desired data we
+       avoid reprogramming it (thanks to John Coffman for this super idea).    */
 
     subsectors_per_sector = flashrom_type->sector_size / FILEBUFFER_BLOCKS;
     if(subsectors_per_sector == 0){
@@ -325,26 +328,20 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
     return mismatch;
 }
 
-typedef enum { ACTION_UNKNOWN, ACTION_READ, ACTION_WRITE, ACTION_VERIFY } action_t;
-
-typedef enum { ACCESS_NONE, ACCESS_AUTO, ACCESS_ROMWBW, ACCESS_UNABIOS, ACCESS_Z180DMA } access_t;
-
 access_t access_auto_select(void)
 {
-    unsigned int *romwbw_bios_signature = (unsigned int*)0x0040;
-    bool z180_cpu;
+    unsigned int *romwbw_signature = (unsigned int*)0x0040;      /* RomWBW places a 2-byte marker here */
+    unsigned char *unabios_signature_a = (unsigned char*)0x0008; /* UNA uses RST8 for entry */
+    unsigned char *unabios_signature_b = (unsigned char*)0xFFFD; /* UNA keeps an entry vector at top of RAM too */
 
-    z180_cpu = detect_z180_cpu();
-
-    if(*romwbw_bios_signature == 0xA857)
+    if(*romwbw_signature == 0xA857)
         return ACCESS_ROMWBW;
 
-    /*
-    if(some_unabios_test)
+    if(unabios_signature_a[0] == 0xC3 && unabios_signature_a[1] == 0x80 && unabios_signature_a[2] == 0xFF &&
+       unabios_signature_b[0] == 0xC3 && unabios_signature_b[1] == 0x80 && unabios_signature_b[2] == 0xFF)
         return ACCESS_UNABIOS;
-    */
 
-    if(z180_cpu)
+    if(detect_z180_cpu())
         return ACCESS_Z180DMA;
 
     return ACCESS_NONE;
@@ -358,7 +355,7 @@ void main(int argc, char *argv[])
     action_t action = ACTION_UNKNOWN;
     access_t access = ACCESS_AUTO;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 0.9.1\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -372,7 +369,6 @@ void main(int argc, char *argv[])
             printf("Unrecognised option \"%s\"\n", argv[i]);
             return;
         }
-
     }
 
     if(access == ACCESS_AUTO)
@@ -382,10 +378,10 @@ void main(int argc, char *argv[])
         case ACCESS_Z180DMA:
             printf("Using Z180 DMA engine.\n");
             init_z180dma();
-            flashrom_chip_read = flashrom_chip_read_z180dma;
-            flashrom_chip_write = flashrom_chip_write_z180dma;
-            flashrom_block_read = flashrom_block_read_z180dma;
-            flashrom_block_write = flashrom_block_write_z180dma;
+            flashrom_chip_read    = flashrom_chip_read_z180dma;
+            flashrom_chip_write   = flashrom_chip_write_z180dma;
+            flashrom_block_read   = flashrom_block_read_z180dma;
+            flashrom_block_write  = flashrom_block_write_z180dma;
             flashrom_block_verify = flashrom_block_verify_z180dma;
             break;
         case ACCESS_UNABIOS:
@@ -396,11 +392,11 @@ void main(int argc, char *argv[])
         case ACCESS_ROMWBW:
             printf("Using %s bank switching.\n", (access == ACCESS_ROMWBW) ? "RomWBW" : "UNA BIOS");
             init_bankswitch();
-            flashrom_chip_read = flashrom_chip_read_bankswitch;
-            flashrom_chip_write = flashrom_chip_write_bankswitch;
-            flashrom_block_write = flashrom_block_write_bankswitch;
+            flashrom_chip_read    = flashrom_chip_read_bankswitch;
+            flashrom_chip_write   = flashrom_chip_write_bankswitch;
+            flashrom_block_read   = flashrom_block_read_bankswitch;
+            flashrom_block_write  = flashrom_block_write_bankswitch;
             flashrom_block_verify = flashrom_block_verify_bankswitch;
-            flashrom_block_read = flashrom_block_read_bankswitch;
             break;
         case ACCESS_NONE:
         case ACCESS_AUTO:
@@ -461,9 +457,9 @@ void main(int argc, char *argv[])
                 return;
             }
             if(action == ACTION_WRITE)
-                mismatch = flashrom_verify_and_write(&imagefile, true);
+                mismatch = flashrom_verify_and_write(&imagefile, true); /* we avoid verifying if nothing changed */
             else
-                mismatch = 1;
+                mismatch = 1; /* force a verify if we're not writing */
             if(mismatch)
                 flashrom_verify_and_write(&imagefile, false);
             break;
