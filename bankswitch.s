@@ -93,13 +93,7 @@ _flashrom_chip_read_bankswitch:
     call selectaddr
     ld a, (de) ; read from the flash in banked memory
     ld l, a
-putback:
-    push hl
-    ; put our memory back in the banked region
-    ld hl, (_default_mem_bank)
-    call loadbank
-    pop hl ; recover value read from flash
-    ret
+    jr putback
 
 _flashrom_chip_write_bankswitch:
     call selectaddr
@@ -127,7 +121,13 @@ _flashrom_block_read_bankswitch:
     call selectaddr
     call targetlength
     ldir            ; copy copy copy
-    jr putback
+putback:
+    push hl
+    ; put our memory back in the banked region
+    ld hl, (_default_mem_bank)
+    call loadbank
+    pop hl ; recover value read from flash
+    ret
 
 _flashrom_block_verify_bankswitch:
     call selectaddr
@@ -176,8 +176,19 @@ writenext:
     ld (hl), a
 
     ; partial setup for the next byte while the write occurs
+nextbyte:
     dec bc
     inc de
+
+    ; check if the next byte is 0xff -- we can skip it (0xff = erased)
+    ld a, (de)
+    inc a
+    jr nz, writewait ; only 0xff + 1 = 0
+    ld a, b          ; but are there any bytes left to write?
+    or c
+    jr z, writewait  ; if this was the last byte, complete normally
+    inc hl           ; data sheet does not indicate we must read status from the same address
+    jr nextbyte      ; okay, we can safely skip this byte!
 
     ; wait for programming to complete
 writewait:
@@ -190,7 +201,7 @@ writewait:
     jr nz, writewait
 
     ; finish setup for the next byte
-    inc hl
+    inc hl           ; do not do this earlier, to ensure we stay in the ROM address space
     ld a, b
     or c
     jr nz, writenext
