@@ -9,10 +9,15 @@
     .globl _default_mem_bank
     .globl _bank_switch_method
 
-ROMWBW_SETBNK  .equ 0xFC06
-ROMWBW_GETBNK  .equ 0xFC09
-UNABIOS_GETBNK .equ 0xFA
-UNABIOS_SETBNK .equ 0xFB
+; RomWBW entry vectors
+ROMWBW_SETBNK      .equ 0xFC06
+ROMWBW_GETBNK      .equ 0xFC09
+
+; UNA BIOS banked memory functions
+UNABIOS_ENTRY      .equ 0x08 ; entry vector
+UNABIOS_BANKEDMEM  .equ 0xFB ; C register - function number
+UNABIOS_BANK_GET   .equ 0x00 ; B register - subfunction number
+UNABIOS_BANK_SET   .equ 0x01 ; B register - subfunction number
 
     .area _CODE
 
@@ -30,9 +35,9 @@ loadbank_romwbw:
     call #ROMWBW_SETBNK
     ret
 loadbank_unabios:
-    ld c, #UNABIOS_SETBNK
+    ld bc, #(UNABIOS_BANK_SET << 8 | UNABIOS_BANKEDMEM)
     ex de, hl ; move page number into DE
-    rst 8
+    rst #UNABIOS_ENTRY
     ret
 
     ; return the currently loaded page number
@@ -52,8 +57,8 @@ getbank_romwbw:
     ld l, a
     ret
 getbank_unabios:
-    ld c, #UNABIOS_GETBNK
-    rst 8
+    ld bc, #(UNABIOS_BANK_GET << 8 | UNABIOS_BANKEDMEM)
+    rst #UNABIOS_ENTRY
     ; returns page number in DE
     ex de, hl
     ret

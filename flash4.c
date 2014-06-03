@@ -368,7 +368,7 @@ void main(int argc, char *argv[])
     action_t action = ACTION_UNKNOWN;
     access_t access = ACCESS_AUTO;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.1\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
