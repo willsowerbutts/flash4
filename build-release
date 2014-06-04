@@ -6,4 +6,5 @@ cp flash4.com /tmp/
 make clean
 cp /tmp/flash4.com .
 cd ..
+rm -f flash4-RELEASE.zip
 zip -9r flash4-RELEASE.zip flash4/ --exclude flash4/doc/\* --exclude flash4/.git/\* --exclude flash4/build-release

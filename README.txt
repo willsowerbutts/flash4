@@ -1,6 +1,6 @@
 
            FLASH4 (c) 2014 William R Sowerbutts <will@sowerbutts.com>
-                           http://sowerbutts.com/z80/
+                          http://sowerbutts.com/8bit/
 
 = Warning =
 
