@@ -7,17 +7,6 @@
 #include "detectcpu.h"
 #include "buffers.h"
 
-/*
- * TODO
- * - memory signature to detect UNABIOS? waiting on info from John.
- *   - make get/set bank vectors runtime switchable
- *
- * 2014-05-29 Z180 DMA baseline time to reflash entire ROM plus verify from CF media is 1m49s (write random.img, then time write flash8.img)
- * 2014-05-31 Bank switched memory time same (compiler generated code) is 1m14s
- * 2014-05-31 Bank switched memory time same (hand assembly code) is 25s
- * 2014-06-01 Bank switched memory time same (hand assembly code, improved verify etc) is 21s
- */
-
 typedef enum { ACTION_UNKNOWN, ACTION_READ, ACTION_WRITE, ACTION_VERIFY } action_t;
 typedef enum { ACCESS_NONE, ACCESS_AUTO, ACCESS_ROMWBW, ACCESS_UNABIOS, ACCESS_Z180DMA } access_t;
 
