@@ -74,6 +74,11 @@ of the named file. The file size must exactly match the size of the ROM chip.
 This will read out the entire flash ROM contents and write it to the named
 file.
 
+If your ROM chip is larger than the image you wish to write, use the "/PARTIAL"
+(or "/P") command line option. To avoid accidentally flashing the wrong file,
+the image file must be an exact multiple of 32KB in length. The portion of the
+ROM not occupied by the image file is left either unmodified or erased.
+
 One of the following optional command line arguments may be specified at the
 end of the command line to force FLASH4 to use a particular method to access
 the flash ROM chip:

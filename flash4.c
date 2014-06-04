@@ -200,7 +200,7 @@ void flashrom_read(cpm_fcb *outfile)
 {
     unsigned long offset;
     unsigned int block;
-    int r;
+    unsigned char r;
 
     offset = 0;
     block = 0;
@@ -220,21 +220,32 @@ void flashrom_read(cpm_fcb *outfile)
     printf("\rRead complete.\n");
 }
 
-void read_data_from_file(cpm_fcb *infile, unsigned int block, unsigned int count)
+bool read_data_from_file(cpm_fcb *infile, unsigned int block, unsigned int count)
 {
-    unsigned char *ptr;
-    int r;
+    unsigned char *ptr, r;
 
     ptr = filebuffer;
 
+    /* give the user something pretty to watch */
+    printf("\x08%c", spinner());
+
     while(count--){
         r = cpm_f_read_random(infile, block++, ptr);
-        if(r){
-            printf("cpm_f_read()=%d\n", r);
-            cpm_abort();
+        switch(r){
+            case 1:
+            case 4:
+                return true;
+            case 0:
+                break;
+            default:
+                printf("cpm_f_read()=%d\n", r);
+                cpm_abort();
         }
+
         ptr += CPM_BLOCK_SIZE;
     }
+
+    return false; /* not EOF */
 }
 
 unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
@@ -243,6 +254,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
     unsigned int subsectors_per_sector, blocks_per_subsector, bytes_per_subsector;
     unsigned long flash_address;
     bool verify_okay;
+    bool eof = false;
 
     /* We verify or program at most one sector at once. If a sector is larger
        than our memory buffer for data read from disk, we divide it up into
@@ -270,7 +282,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         abort_and_solicit_report();
     }
 
-    for(sector=0; sector < flashrom_type->sector_count; sector++){
+    for(sector=0; (sector < flashrom_type->sector_count) && !eof; sector++){
         printf("\r%s: sector %d/%d   ", perform_write ? "Write" : "Verify", sector, flashrom_type->sector_count);
 
         /* verify sector */
@@ -279,10 +291,10 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         verify_okay = true;
 
         for(subsector=0; subsector < subsectors_per_sector; subsector++){
-            printf("\x08%c", spinner());
-            read_data_from_file(infile, block, blocks_per_subsector);
-
-            if(!flashrom_block_verify(flash_address, filebuffer, bytes_per_subsector)){
+            if(read_data_from_file(infile, block, blocks_per_subsector)){
+                eof = true;
+                break;
+            }else if(!flashrom_block_verify(flash_address, filebuffer, bytes_per_subsector)){
                 verify_okay = false;
                 break;
             }
@@ -298,7 +310,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                     /* we need to rewind to the first subsector */
                     flash_address = flashrom_sector_address(sector);
                     block = sector * flashrom_type->sector_size;
-                    read_data_from_file(infile, block, blocks_per_subsector);
+                    eof = read_data_from_file(infile, block, blocks_per_subsector);
                     subsector = 0;
                 }
 
@@ -306,7 +318,8 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                 if(flashrom_type->strategy & ST_PROGRAM_SECTORS){
                     /* This type of chip has a combined erase/program cycle that programs a whole
                        sector at once. The sectors are quite small (128 or 256 bytes) so there is
-                       exactly 1 subsector (and we employ a sanity check to ensure this is true)   */
+                       exactly 1 subsector (and we employ a sanity check to ensure this is true).
+                       Additionally we can be sure that we are not at EOF yet.        */
                     flashrom_sector_program(flash_address, filebuffer, bytes_per_subsector);
                 }else{
                     if(flashrom_type->strategy & ST_ERASE_CHIP)
@@ -321,8 +334,10 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                             break;
                         block += blocks_per_subsector;
                         flash_address += bytes_per_subsector;
-                        printf("\x08%c", spinner());
-                        read_data_from_file(infile, block, blocks_per_subsector);
+                        if(read_data_from_file(infile, block, blocks_per_subsector)){
+                            eof = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -333,12 +348,39 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
     if(perform_write){
         printf("\rWrite complete: Reprogrammed %d/%d sectors.\n", mismatch, flashrom_type->sector_count);
     }else{
-        printf("\rVerify complete: %d/%d sectors contain errors.\n", mismatch, flashrom_type->sector_count);
-        if(mismatch)
+        if(sector != flashrom_type->sector_count)
+            printf("\rPartial verify (%d/%d sectors)", sector-1, flashrom_type->sector_count);
+        else
+            printf("\rVerify (%d sectors)", flashrom_type->sector_count);
+
+        if(mismatch){
+            printf(" complete: %d sectors contain errors.\n", mismatch);
             printf("\n*** VERIFY FAILED ***\n\n");
+        }else
+            printf(" complete: OK!\n");
     }
 
     return mismatch;
+}
+
+bool check_file_size(cpm_fcb *imagefile, bool allow_partial)
+{
+    unsigned int file_size;
+    unsigned int rom_size;
+
+    file_size = cpm_f_getsize(imagefile);
+    rom_size = (flashrom_type->sector_count * flashrom_type->sector_size);
+
+    if(file_size == rom_size)
+        return true;
+
+    if(allow_partial &&
+       (rom_size > file_size) && 
+       (file_size != 0) &&
+       (file_size & 0xff) == 0) /* file is exact multiple of 32KB long */
+        return true;
+
+    return false;
 }
 
 access_t access_auto_select(void)
@@ -365,10 +407,11 @@ void main(int argc, char *argv[])
     int i;
     unsigned int mismatch;
     cpm_fcb imagefile;
+    bool allow_partial=false;
     action_t action = ACTION_UNKNOWN;
     access_t access = ACCESS_AUTO;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.1\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.2\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -378,6 +421,8 @@ void main(int argc, char *argv[])
             access = ACCESS_ROMWBW;
         else if(strcmp(argv[i], "/UNABIOS") == 0)
             access = ACCESS_UNABIOS;
+        else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
+            allow_partial = true;
         else if(argv[i][0] == '/'){
             printf("Unrecognised option \"%s\"\n", argv[i]);
             return;
@@ -438,7 +483,8 @@ void main(int argc, char *argv[])
         printf("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
                "\tFLASH4 VERIFY filename [options]\n" \
                "\tFLASH4 WRITE filename [options]\n\n" \
-               "Options (default is auto-detection)\n" \
+               "Options (access method is auto-detected by default)\n" \
+               "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
                "\t/Z180DMA\tForce Z180 DMA engine\n" \
                "\t/ROMWBW \tForce RomWBW bank switching\n" \
                "\t/UNABIOS\tForce UNA BIOS bank switching\n");
@@ -461,8 +507,10 @@ void main(int argc, char *argv[])
                 printf("Cannot open file \"%s\".\n", argv[2]);
                 return;
             }
-            if(cpm_f_getsize(&imagefile) != (flashrom_type->sector_count * flashrom_type->sector_size)){
-                printf("Image file size does not match ROM size: Aborting\n");
+            if(!check_file_size(&imagefile, allow_partial)){
+                printf("Image file size does not match ROM size: Aborting\n" \
+                       "You may use /PARTIAL to program only the start of the ROM, however for\n" \
+                       "safety reasons the image file must be a multiple of exactly 32KB long.\n");
                 return;
             }
             if(action == ACTION_WRITE)

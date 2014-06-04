@@ -28,11 +28,11 @@ int cpm_f_close(cpm_fcb *fcb);                        /* close a file */
 unsigned int cpm_f_getsize(cpm_fcb *fcb);             /* return file size, in 128-byte blocks */
 
 /* sequential block I/O */
-int cpm_f_read_next(cpm_fcb *fcb, char *buffer);      /* read the next 128-byte block from file */
-int cpm_f_write_next(cpm_fcb *fcb, char *buffer);     /* write the next 128-byte block to file */
+unsigned char cpm_f_read_next(cpm_fcb *fcb, char *buffer);      /* read the next 128-byte block from file */
+unsigned char cpm_f_write_next(cpm_fcb *fcb, char *buffer);     /* write the next 128-byte block to file */
 
 /* random block I/O */
-int cpm_f_read_random(cpm_fcb *fcb, unsigned int block, char *buffer);    /* read 128-byte block from file */
-int cpm_f_write_random(cpm_fcb *fcb, unsigned int block, char *buffer);   /* write 128-byte block to file */
+unsigned char cpm_f_read_random(cpm_fcb *fcb, unsigned int block, char *buffer);    /* read 128-byte block from file */
+unsigned char cpm_f_write_random(cpm_fcb *fcb, unsigned int block, char *buffer);   /* write 128-byte block to file */
 
 #endif

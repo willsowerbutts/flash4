@@ -9,6 +9,6 @@
         .area   _BSS
         ; note the booster does not copy data in this section
 
-        ; keep these in sync with the definitions in flash4.c
+        ; keep these in sync with the definitions in buffers.h
 _filebuffer: .ds (128 * 32)
 _rombuffer:  .ds 128
