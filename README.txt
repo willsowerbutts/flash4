@@ -4,15 +4,15 @@
 
 = Warning =
 
-** THIS SOFTWARE IS NOT YET WIDELY TESTED ** 
+FLASH4 has been tested and confirmed working on:
+ * SBCv2
+ * N8-2312
+ * Mark IV SBC
 
-It is only well tested with 39F040 devices on the Mark IV SBC running RomWBW. I
-believe it should work on other systems but I do not have any to test with. If
-it works for you, please let me know. If it breaks please also let me know so I
-can fix it! 
-
-Until it is more widely tested please ensure you have some other means to
-reprogram your flash ROM before trusting FLASH4.
+However it remains somewhat experimental. If it works for you, please let me
+know. If it breaks please also let me know so I can fix it! Until it is more
+widely tested please ensure you have some other means to reprogram your flash
+ROM before exclusively trusting FLASH4.
 
 
 = Introduction =
@@ -49,10 +49,16 @@ use the bank switching methods they provide.
 
 If neither RomWBW nor UNA BIOS is detected and the system has a Z180 CPU,
 FLASH4 will use the Z180 DMA engine to access the Flash ROM chip. This does not
-require any bank switching but it is slower. The Z180 CPU I/O base control
-register should be configured to locate the internal I/O addresses at 0x40 (ie
-ICR bits IOA7, IOA6 = 0, 1).
+require any bank switching but it is slower and will not work on all platforms.
 
+Z180 DMA access requires the flash ROM to be linearly mapped into the lower
+region of physical memory, as it is on the Mark IV SBC. The N8-2312 has
+additional memory mapping hardware, consequently Z180 DMA access on the N8-2312
+is NOT SUPPORTED and if forced will corrupt the contents of RAM; use bank
+switched access instead.
+
+Z180 DMA access requires the Z180 CPU I/O base control register configured to
+locate the internal I/O addresses at 0x40 (ie ICR bits IOA7, IOA6 = 0, 1).
 
 = Usage =
 
