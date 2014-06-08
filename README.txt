@@ -39,9 +39,16 @@ perform the same task using a USB MiniPro TL866 EEPROM programmer under Linux
 on my PC. If only a subset of sectors require reprogramming FLASH4 will be
 even faster.
 
+FLASH4 works with binary ROM image files, it does not support Intel Hex format
+files. Hex files can be easily converted to or from binaries using "hex2bin" or
+the "srec_cat" program from SRecord:
+
+  $ srec_cat image.hex -intel -fill 0xFF 0 0x80000 -output image.bin -binary
+  $ srec_cat image.bin -binary -output image.hex -intel
+
 FLASH4 can use three different methods to access the Flash ROM chip. The best
 available method is determined automatically at run time. Alternatively you may
-provide a command-line option to force the use of a given method.
+provide a command-line option to force the use of a specific method.
 
 The first two methods use bank switching to map sections of the ROM into the
 CPU address space. FLASH4 will detect the presence of RomWBW or UNA BIOS and
@@ -59,6 +66,7 @@ switched access instead.
 
 Z180 DMA access requires the Z180 CPU I/O base control register configured to
 locate the internal I/O addresses at 0x40 (ie ICR bits IOA7, IOA6 = 0, 1).
+
 
 = Usage =
 
