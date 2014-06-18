@@ -374,15 +374,13 @@ bool check_file_size(cpm_fcb *imagefile, bool allow_partial)
 
 access_t access_auto_select(void)
 {
-    unsigned int *romwbw_signature = (unsigned int*)0x0040;      /* RomWBW places a 2-byte marker here */
-    unsigned char *unabios_signature_a = (unsigned char*)0x0008; /* UNA uses RST8 for entry */
-    unsigned char *unabios_signature_b = (unsigned char*)0xFFFD; /* UNA keeps an entry vector at top of RAM too */
+    unsigned int *cpm_signature = (unsigned int*)0x0040;      /* RomWBW and UNA CP/M place a 2-byte marker here */
+    unsigned char *unabios_vector = (unsigned char*)0x0008;   /* UNA uses RST8 for entry */
 
-    if(*romwbw_signature == 0xA857)
+    if(*cpm_signature == 0xA857)
         return ACCESS_ROMWBW;
 
-    if(unabios_signature_a[0] == 0xC3 && unabios_signature_a[1] == 0x80 && unabios_signature_a[2] == 0xFF &&
-       unabios_signature_b[0] == 0xC3 && unabios_signature_b[1] == 0x80 && unabios_signature_b[2] == 0xFF)
+    if(*cpm_signature == 0x05B1 && *unabios_vector == 0xC3)
         return ACCESS_UNABIOS;
 
     if(detect_z180_cpu())
@@ -400,7 +398,7 @@ void main(int argc, char *argv[])
     action_t action = ACTION_UNKNOWN;
     access_t access = ACCESS_AUTO;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.2\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.3\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
