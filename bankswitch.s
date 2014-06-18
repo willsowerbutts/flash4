@@ -8,6 +8,7 @@
     .globl _flashrom_block_verify_bankswitch
     .globl _default_mem_bank
     .globl _bank_switch_method
+    .globl _una_entry_vector
 
 ; RomWBW entry vectors
 ROMWBW_SETBNK      .equ 0xFC06
@@ -35,9 +36,16 @@ loadbank_romwbw:
     call #ROMWBW_SETBNK
     ret
 loadbank_unabios:
+    ; This is slightly tricky. Normally we'd enter UNA via the RST 8 call,
+    ; but we can't do this as we're going to replace the lower part of memory
+    ; with flash ROM contents, that does not have the RST 8 vector in place.
     ld bc, #(UNABIOS_BANK_SET << 8 | UNABIOS_BANKEDMEM)
-    ex de, hl ; move page number into DE
-    rst #UNABIOS_ENTRY
+    ex de, hl                   ; move page number into DE
+    ld hl, #loadbank_una_return
+    push hl                     ; put return address on stack
+    ld hl, (_una_entry_vector)
+    jp (hl)                     ; simulate call to entry vector
+loadbank_una_return:
     ret
 
     ; return the currently loaded page number
@@ -58,7 +66,11 @@ getbank_romwbw:
     ret
 getbank_unabios:
     ld bc, #(UNABIOS_BANK_GET << 8 | UNABIOS_BANKEDMEM)
-    rst #UNABIOS_ENTRY
+    ld hl, #getbank_una_return
+    push hl                     ; put return address on stack
+    ld hl, (_una_entry_vector)
+    jp (hl)                     ; simulate call to entry vector
+getbank_una_return:
     ; returns page number in DE
     ex de, hl
     ret
