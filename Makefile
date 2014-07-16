@@ -29,5 +29,5 @@ clean:
 	rm -f $(OBJS) $(JUNK) *~ flash4.com flash4.ihx flash4.map
 
 flash4.com: $(OBJS)
-	$(SDLD) -nmwx -i flash4.ihx -b _CODE=0x8000 -k /usr/local/share/sdcc/lib/z80/ -l z80 $(OBJS)
+	$(SDLD) -nmwx -i flash4.ihx -b _CODE=0x8000 -k /usr/share/sdcc/lib/z80/ -l z80 $(OBJS)
 	srec_cat -disable-sequence-warning flash4.ihx -intel -offset -0x8000 -output flash4.com -binary
