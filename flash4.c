@@ -374,14 +374,16 @@ bool check_file_size(cpm_fcb *imagefile, bool allow_partial)
 
 access_t access_auto_select(void)
 {
-    unsigned int *cpm_signature = (unsigned int*)0x0040;      /* RomWBW and UNA CP/M place a 2-byte marker here */
-    unsigned char *unabios_vector = (unsigned char*)0x0008;   /* UNA uses RST8 for entry */
+    // Note that versions of RomWBW before approx 2014-08 place a
+    // signature at CPM_SIGNATURE_ADDR but not BIOS_SIGNATURE_ADDR.
+    // Therefore we cannot rely on the latter to confirm if RomWBW
+    // HBIOS is present or not.
 
-    if(*cpm_signature == 0xA857)
-        return ACCESS_ROMWBW;
-
-    if(*cpm_signature == 0x05B1 && *unabios_vector == 0xC3)
+    if(*((unsigned int*)BIOS_SIGNATURE_ADDR) == BIOS_SIGNATURE_UNA)
         return ACCESS_UNABIOS;
+
+    if(*((unsigned int*)CPM_SIGNATURE_ADDR) == CPM_SIGNATURE_ROMWBW)
+        return ACCESS_ROMWBW;
 
     if(detect_z180_cpu())
         return ACCESS_Z180DMA;
@@ -398,7 +400,7 @@ void main(int argc, char *argv[])
     action_t action = ACTION_UNKNOWN;
     access_t access = ACCESS_AUTO;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.3\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.4\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */

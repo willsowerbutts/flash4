@@ -3,6 +3,15 @@
 
 #define CPM_BLOCK_SIZE 128
 
+// addresses of interesting data in the zero page
+#define BDOS_ENTRY_ADDR               0x0005
+#define CPM_SIGNATURE_ADDR            0x0040
+#define BIOS_SIGNATURE_ADDR           0x0046
+
+#define CPM_SIGNATURE_ROMWBW          0xA857
+#define CPM_SIGNATURE_UNACPM          0x05B1
+#define BIOS_SIGNATURE_UNA            0x9CCE
+
 /* File control block -- see http://www.seasip.demon.co.uk/Cpm/fcb.html */
 typedef struct cpm_fcb {
     unsigned char dr;
