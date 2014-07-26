@@ -35,5 +35,5 @@ void cpm_f_prepare(cpm_fcb *fcb, char *name)
     }
     /* pad with spaces */
     for(;i<3;i++)
-        fcb->name[i] = ' ';
+        fcb->ext[i] = ' ';
 }
