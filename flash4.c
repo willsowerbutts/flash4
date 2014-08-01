@@ -514,3 +514,4 @@ void main(int argc, char *argv[])
 
     cpm_f_close(&imagefile);
 }
+
