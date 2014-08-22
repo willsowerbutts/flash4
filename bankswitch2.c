@@ -18,9 +18,4 @@ void init_bankswitch(unsigned char method)
         una_entry_vector = *((unsigned int*)9);
 
     default_mem_bank = bankswitch_get_current_bank();
-
-    /*
-    printf("Bank switching method %d, una_entry_vector=0x%04x, default_mem_bank=0x%04x\n",
-            bank_switch_method, una_entry_vector, default_mem_bank);
-    */
 }

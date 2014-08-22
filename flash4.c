@@ -7,8 +7,24 @@
 #include "detectcpu.h"
 #include "buffers.h"
 
-typedef enum { ACTION_UNKNOWN, ACTION_READ, ACTION_WRITE, ACTION_VERIFY } action_t;
-typedef enum { ACCESS_NONE, ACCESS_AUTO, ACCESS_ROMWBW, ACCESS_UNABIOS, ACCESS_Z180DMA } access_t;
+typedef enum { 
+    ACTION_UNKNOWN, 
+    ACTION_READ, 
+    ACTION_WRITE, 
+    ACTION_VERIFY 
+} action_t;
+
+typedef enum { 
+    ACCESS_NONE, 
+    ACCESS_AUTO,
+    ACCESS_ROMWBW,
+    ACCESS_UNABIOS, 
+    ACCESS_Z180DMA,
+    ACCESS_P112,
+} access_t;
+
+static action_t action = ACTION_UNKNOWN;
+static access_t access = ACCESS_AUTO;
 
 typedef struct {
     unsigned int chip_id;
@@ -331,6 +347,12 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                 }
             }
         }
+
+        /* P112 can address only first 32KB of any device */
+        if(access == ACCESS_P112){
+            if(sector >= ((32768 / 128) / flashrom_type->sector_size))
+                eof = true; /* force EOF at end of addressable region */
+        }
     }
 
     /* report outcome */
@@ -372,19 +394,37 @@ bool check_file_size(cpm_fcb *imagefile, bool allow_partial)
     return false;
 }
 
-access_t access_auto_select(void)
+bool una_bios_present(void)
 {
     unsigned int **bios_signature = (unsigned int **)BIOS_SIGNATURE_ADDR;
+    return (**bios_signature == BIOS_SIGNATURE_UNA);
+}
+
+bool romwbw_bios_present(void)
+{
+    return (*((unsigned int*)CPM_SIGNATURE_ADDR) == CPM_SIGNATURE_ROMWBW);
+}
+
+static const char *bpbios_p112_signature = "B/P-DX";
+bool bpbios_p112_present(void)
+{
+    return (memcmp((const char*)(*((unsigned int*)BIOS_ENTRY_ADDR) + 0x75), bpbios_p112_signature, 6) == 0);
+}
+
+access_t access_auto_select(void)
+{
     // Note that versions of RomWBW before approx 2014-08 place a
     // signature at CPM_SIGNATURE_ADDR but not BIOS_SIGNATURE_ADDR.
     // Therefore we cannot rely on the latter to confirm if RomWBW
     // HBIOS is present or not.
-
-    if(**bios_signature == BIOS_SIGNATURE_UNA)
+    if(una_bios_present())
         return ACCESS_UNABIOS;
 
-    if(*((unsigned int*)CPM_SIGNATURE_ADDR) == CPM_SIGNATURE_ROMWBW)
+    if(romwbw_bios_present())
         return ACCESS_ROMWBW;
+
+    if(bpbios_p112_present())
+        return ACCESS_P112;
 
     if(detect_z180_cpu())
         return ACCESS_Z180DMA;
@@ -398,10 +438,7 @@ void main(int argc, char *argv[])
     unsigned int mismatch;
     cpm_fcb imagefile;
     bool allow_partial=false;
-    action_t action = ACTION_UNKNOWN;
-    access_t access = ACCESS_AUTO;
-
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.0.5\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.1.0\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -411,6 +448,8 @@ void main(int argc, char *argv[])
             access = ACCESS_ROMWBW;
         else if(strcmp(argv[i], "/UNABIOS") == 0)
             access = ACCESS_UNABIOS;
+        else if(strcmp(argv[i], "/P112") == 0)
+            access = ACCESS_P112;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
         else if(argv[i][0] == '/'){
@@ -421,6 +460,13 @@ void main(int argc, char *argv[])
 
     if(access == ACCESS_AUTO)
         access = access_auto_select();
+
+    // assume bank switching
+    flashrom_chip_read    = flashrom_chip_read_bankswitch;
+    flashrom_chip_write   = flashrom_chip_write_bankswitch;
+    flashrom_block_read   = flashrom_block_read_bankswitch;
+    flashrom_block_write  = flashrom_block_write_bankswitch;
+    flashrom_block_verify = flashrom_block_verify_bankswitch;
 
     switch(access){
         case ACCESS_Z180DMA:
@@ -433,14 +479,16 @@ void main(int argc, char *argv[])
             flashrom_block_verify = flashrom_block_verify_z180dma;
             break;
         case ACCESS_UNABIOS:
+            printf("Using UNA BIOS bank switching.\n");
+            init_bankswitch(BANKSWITCH_UNABIOS);
+            break;
         case ACCESS_ROMWBW:
-            printf("Using %s bank switching.\n", (access == ACCESS_ROMWBW) ? "RomWBW" : "UNA BIOS");
-            init_bankswitch( (access == ACCESS_ROMWBW) ? BANKSWITCH_ROMWBW : BANKSWITCH_UNABIOS );
-            flashrom_chip_read    = flashrom_chip_read_bankswitch;
-            flashrom_chip_write   = flashrom_chip_write_bankswitch;
-            flashrom_block_read   = flashrom_block_read_bankswitch;
-            flashrom_block_write  = flashrom_block_write_bankswitch;
-            flashrom_block_verify = flashrom_block_verify_bankswitch;
+            printf("Using RomWBW bank switching.\n");
+            init_bankswitch(BANKSWITCH_ROMWBW);
+            break;
+        case ACCESS_P112:
+            printf("Using P112 bank switching.\n");
+            init_bankswitch(BANKSWITCH_P112);
             break;
         case ACCESS_NONE:
         case ACCESS_AUTO:
@@ -457,6 +505,12 @@ void main(int argc, char *argv[])
     printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
             flashrom_type->sector_count, flashrom_sector_size,
             flashrom_size >> 10);
+
+    if(access == ACCESS_P112 && flashrom_size > 32768){
+        printf("P112 can address only first 32KB: Partial mode enabled.\n");
+        allow_partial = true;
+        flashrom_size = 32768;
+    }
 
     /* determine action */
     if(argc >= 3){
@@ -477,7 +531,8 @@ void main(int argc, char *argv[])
                "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
                "\t/Z180DMA\tForce Z180 DMA engine\n" \
                "\t/ROMWBW \tForce RomWBW bank switching\n" \
-               "\t/UNABIOS\tForce UNA BIOS bank switching\n");
+               "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
+               "\t/P112\t\tForce P112 bank switching\n");
         return;
     }
 

@@ -20,7 +20,13 @@ UNABIOS_BANKEDMEM  .equ 0xFB ; C register - function number
 UNABIOS_BANK_GET   .equ 0x00 ; B register - subfunction number
 UNABIOS_BANK_SET   .equ 0x01 ; B register - subfunction number
 
+; P112 Z80182 hardware control registers
+P112_DCNTL         .equ 0x32 ; Device control register
+P112_BBR           .equ 0x39 ; Bank base register
+P112_SCR           .equ 0xEF ; System config register
+
     .area _CODE
+    .z180
 
     ; load the page in register HL into the banked region (lower 32K)
 loadbank:
@@ -29,6 +35,8 @@ loadbank:
     jr z, loadbank_romwbw
     dec a
     jr z, loadbank_unabios
+    dec a
+    jr z, loadbank_p112
     ; well, this is unexpected
     ret
 loadbank_romwbw:
@@ -47,6 +55,30 @@ loadbank_unabios:
     jp (hl)                     ; simulate call to entry vector
 loadbank_una_return:
     ret
+loadbank_p112:
+    ; map in the EEPROM if HL==0, else unmap it
+    ld a, h
+    or l
+    jr nz, unmap_p112_rom
+map_p112_rom:
+    di                  ; disable interrupts
+    xor a
+    out0 (P112_BBR), a  ; map ROM into banked area
+    in0 a, (P112_SCR)
+    and a, #0xf7        ; enable EEPROM
+    out0 (P112_SCR), a
+    in0 a, (P112_DCNTL)
+    or #0xc0            ; set 3 memory wait states
+    out0 (P112_DCNTL), a
+    ret
+unmap_p112_rom:
+    out0 (P112_BBR), l
+    in0 a, (P112_SCR)
+    or a, #0x08         ; disable EEPROM
+    out0 (P112_SCR), a
+    out0 (P112_DCNTL), h
+    ei                  ; interrupts back on
+    ret
 
     ; return the currently loaded page number
 _bankswitch_get_current_bank:
@@ -55,6 +87,8 @@ _bankswitch_get_current_bank:
     jr z, getbank_romwbw
     dec a
     jr z, getbank_unabios
+    dec a
+    jr z, getbank_p112
     ; well, this is unexpected
     ld hl, #0
     ret
@@ -73,6 +107,10 @@ getbank_unabios:
 getbank_una_return:
     ; returns page number in DE
     ex de, hl
+    ret
+getbank_p112:
+    in0 h, (P112_DCNTL)
+    in0 l, (P112_BBR)
     ret
 
 selectaddr:

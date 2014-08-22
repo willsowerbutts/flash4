@@ -3,6 +3,7 @@
 
 #define BANKSWITCH_ROMWBW   0
 #define BANKSWITCH_UNABIOS  1
+#define BANKSWITCH_P112     2
 
 void init_bankswitch(unsigned char method);
 unsigned int bankswitch_get_current_bank(void);

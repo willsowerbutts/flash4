@@ -4,6 +4,7 @@
 #define CPM_BLOCK_SIZE 128
 
 // addresses of interesting data in the zero page
+#define BIOS_ENTRY_ADDR               0x0001
 #define BDOS_ENTRY_ADDR               0x0005
 
 #define CPM_SIGNATURE_ADDR            0x0040
