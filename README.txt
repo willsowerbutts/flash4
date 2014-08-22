@@ -5,9 +5,10 @@
 = Warning =
 
 FLASH4 has been tested and confirmed working on:
- * SBCv2
- * N8-2312
- * Mark IV SBC
+ * N8VEM SBCv2
+ * N8VEM N8-2312
+ * N8VEM Mark IV SBC
+ * DX-Designs P112
 
 However it remains somewhat experimental. If it works for you, please let me
 know. If it breaks please also let me know so I can fix it! Until it is more
@@ -19,7 +20,7 @@ ROM before exclusively trusting FLASH4.
 
 FLASH4 is a CP/M program which can read, write and verify Flash ROM contents to
 or from an image file stored on a CP/M filesystem. It is intended for in-system
-programming of Flash ROM chips on N8VEM Z80 and Z180 systems.
+programming of Flash ROM chips on Z80 and Z180 systems.
 
 FLASH4 aims to support a range of Flash ROM chips. Ideally I would like to
 support all Flash ROM chips that are in use in Z80/Z180 N8VEM machines. If
@@ -46,23 +47,26 @@ the "srec_cat" program from SRecord:
   $ srec_cat image.hex -intel -fill 0xFF 0 0x80000 -output image.bin -binary
   $ srec_cat image.bin -binary -output image.hex -intel
 
-FLASH4 can use three different methods to access the Flash ROM chip. The best
+FLASH4 can use several different methods to access the Flash ROM chip. The best
 available method is determined automatically at run time. Alternatively you may
 provide a command-line option to force the use of a specific method.
 
 The first two methods use bank switching to map sections of the ROM into the
 CPU address space. FLASH4 will detect the presence of RomWBW or UNA BIOS and
-use the bank switching methods they provide.
+use the bank switching methods they provide. 
 
-If neither RomWBW nor UNA BIOS is detected and the system has a Z180 CPU,
-FLASH4 will use the Z180 DMA engine to access the Flash ROM chip. This does not
-require any bank switching but it is slower and will not work on all platforms.
+On P112 systems the P112 B/P BIOS is detected and P112 bank switching is used.
+
+If no bank switching method can be auto-detected, and the system has a Z180
+CPU, FLASH4 will use the Z180 DMA engine to access the Flash ROM chip. This
+does not require any bank switching but it is slower and will not work on all
+platforms.
 
 Z180 DMA access requires the flash ROM to be linearly mapped into the lower
-region of physical memory, as it is on the Mark IV SBC. The N8-2312 has
-additional memory mapping hardware, consequently Z180 DMA access on the N8-2312
-is NOT SUPPORTED and if forced will corrupt the contents of RAM; use bank
-switched access instead.
+region of physical memory, as it is on the Mark IV SBC (for example). The
+N8-2312 has additional memory mapping hardware, consequently Z180 DMA access on
+the N8-2312 is NOT SUPPORTED and if forced will corrupt the contents of RAM;
+use one of the supported bank switching methods instead.
 
 Z180 DMA access requires the Z180 CPU I/O base control register configured to
 locate the internal I/O addresses at 0x40 (ie ICR bits IOA7, IOA6 = 0, 1).
@@ -100,6 +104,7 @@ the flash ROM chip:
   /ROMWBW
   /UNABIOS
   /Z180DMA
+  /P112
 
 If no option is specified FLASH4 attempts to determine the best available
 method automatically.
