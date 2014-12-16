@@ -61,6 +61,9 @@ static flashrom_chip_t flashrom_chips[] = {
     { 0x0000, NULL,            0,    0, 0 }
 };
 
+/* special ROM entry for ROM/EPROM/EEPROM with /ROM switch */
+static flashrom_chip_t rom_chip = { 0x0000, "rom", 8, 512, 0 }; /* 512 x 1KB "sectors" */
+
 static flashrom_chip_t *flashrom_type = NULL;
 static unsigned long flashrom_size; /* bytes */
 static unsigned long flashrom_sector_size; /* bytes */
@@ -187,18 +190,25 @@ bool flashrom_identify(void)
     if(!flashrom_type->chip_id){
         /* we scanned the whole table without finding our chip */
         flashrom_type = NULL;
-        flashrom_size = 0;
-        flashrom_sector_size = 0;
         printf("Unknown flash chip.\n");
         return false;
+    }else{
+        printf("%s\n", flashrom_type->chip_name);
+        return true;
+    }
+}
+
+void flashrom_setup(void)
+{
+    if(flashrom_type){
+        flashrom_sector_size = (long)flashrom_type->sector_size * 128L;
+        flashrom_size = flashrom_sector_size * (long)flashrom_type->sector_count;
+    }else{
+        /* reset parameters */
+        flashrom_size = 0;
+        flashrom_sector_size = 0;
     }
 
-    printf("%s\n", flashrom_type->chip_name);
-
-    flashrom_sector_size = (long)flashrom_type->sector_size * 128L;
-    flashrom_size = flashrom_sector_size * (long)flashrom_type->sector_count;
-
-    return true;
 }
 
 void flashrom_read(cpm_fcb *outfile)
@@ -438,7 +448,8 @@ void main(int argc, char *argv[])
     unsigned int mismatch;
     cpm_fcb imagefile;
     bool allow_partial=false;
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.1.0\n\n");
+    bool rom_mode=false;
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.0\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -450,6 +461,8 @@ void main(int argc, char *argv[])
             access = ACCESS_UNABIOS;
         else if(strcmp(argv[i], "/P112") == 0)
             access = ACCESS_P112;
+        else if(strcmp(argv[i], "/ROM") == 0)
+            rom_mode = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
         else if(argv[i][0] == '/'){
@@ -496,22 +509,6 @@ void main(int argc, char *argv[])
             abort_and_solicit_report();
     }
 
-    /* identify flash ROM chip */
-    if(!flashrom_identify()){
-        printf("Your flash memory chip is not recognised.\n");
-        abort_and_solicit_report();
-    }
-
-    printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
-            flashrom_type->sector_count, flashrom_sector_size,
-            flashrom_size >> 10);
-
-    if(access == ACCESS_P112 && flashrom_size > 32768){
-        printf("P112 can address only first 32KB: Partial mode enabled.\n");
-        allow_partial = true;
-        flashrom_size = 32768;
-    }
-
     /* determine action */
     if(argc >= 3){
         cpm_f_prepare(&imagefile, argv[2]);
@@ -523,12 +520,36 @@ void main(int argc, char *argv[])
             action = ACTION_WRITE;
     }
 
+    /* identify flash ROM chip */
+    if(!flashrom_identify()){
+        printf("Your flash memory chip is not recognised.\n");
+        if(rom_mode && (action == ACTION_VERIFY || action == ACTION_READ)){
+            printf("Assuming 512KB ROM\n");
+            flashrom_type = &rom_chip;
+        }else{
+            abort_and_solicit_report();
+        }
+    }
+
+    flashrom_setup();
+
+    printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
+            flashrom_type->sector_count, flashrom_sector_size,
+            flashrom_size >> 10);
+
+    if(access == ACCESS_P112 && flashrom_size > 32768){
+        printf("P112 can address only first 32KB: Partial mode enabled.\n");
+        allow_partial = true;
+        flashrom_size = 32768;
+    }
+
     if(action == ACTION_UNKNOWN){
         printf("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
                "\tFLASH4 VERIFY filename [options]\n" \
                "\tFLASH4 WRITE filename [options]\n\n" \
                "Options (access method is auto-detected by default)\n" \
                "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
+               "\t/ROM\tAllow read-only use of unknown chip types\n" \
                "\t/Z180DMA\tForce Z180 DMA engine\n" \
                "\t/ROMWBW \tForce RomWBW bank switching\n" \
                "\t/UNABIOS\tForce UNA BIOS bank switching\n" \

@@ -97,6 +97,14 @@ If your ROM chip is larger than the image you wish to write, use the "/PARTIAL"
 the image file must be an exact multiple of 32KB in length. The portion of the
 ROM not occupied by the image file is left either unmodified or erased.
 
+If you are using an ROM/EPROM/EEPROM chip which cannot be programmed in-system,
+FLASH4 will not be able to recognise it, however the software can still
+usefully READ and VERIFY the chip. Use the "/ROM" command line option to enable
+"READ" or "VERIFY" mode with unrecognised chips. This mode assumes a 512K ROM
+is fitted; smaller ROMs will be treated as a 512K ROM with the data repated
+multiple times -- with a 256K chip the data is repeated twice, four times for a
+128K chip, etc.
+
 One of the following optional command line arguments may be specified at the
 end of the command line to force FLASH4 to use a particular method to access
 the flash ROM chip:
