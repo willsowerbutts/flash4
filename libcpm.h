@@ -13,7 +13,7 @@
 
 #define BIOS_SIGNATURE_ADDR           0xFFFE
 #define BIOS_SIGNATURE_UNA            0xE5FD
-// no BIOS_SIGNATURE_ROMWBW yet defined
+#define BIOS_SIGNATURE_ROMWBW         0xA857
 
 /* File control block -- see http://www.seasip.demon.co.uk/Cpm/fcb.html */
 typedef struct cpm_fcb {
