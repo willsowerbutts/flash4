@@ -412,7 +412,8 @@ bool una_bios_present(void)
 
 bool romwbw_bios_present(void)
 {
-    return (*((unsigned int*)CPM_SIGNATURE_ADDR) == CPM_SIGNATURE_ROMWBW);
+    unsigned int **bios_signature = (unsigned int **)BIOS_SIGNATURE_ADDR;
+    return (**bios_signature == BIOS_SIGNATURE_ROMWBW);
 }
 
 static const char *bpbios_p112_signature = "B/P-DX";
@@ -449,7 +450,7 @@ void main(int argc, char *argv[])
     cpm_fcb imagefile;
     bool allow_partial=false;
     bool rom_mode=false;
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.0\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.1\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -549,7 +550,7 @@ void main(int argc, char *argv[])
                "\tFLASH4 WRITE filename [options]\n\n" \
                "Options (access method is auto-detected by default)\n" \
                "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
-               "\t/ROM\tAllow read-only use of unknown chip types\n" \
+               "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
                "\t/Z180DMA\tForce Z180 DMA engine\n" \
                "\t/ROMWBW \tForce RomWBW bank switching\n" \
                "\t/UNABIOS\tForce UNA BIOS bank switching\n" \

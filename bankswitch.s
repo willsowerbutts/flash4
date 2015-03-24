@@ -10,9 +10,9 @@
     .globl _bank_switch_method
     .globl _una_entry_vector
 
-; RomWBW entry vectors
-ROMWBW_SETBNK      .equ 0xFC06
-ROMWBW_GETBNK      .equ 0xFC09
+; RomWBW fixed address vectors/storage
+ROMWBW_SETBNK      .equ 0xFFF3 ; RomWBW SETBNK function vector
+ROMWBW_CURBNK      .equ 0xFFE0 ; RomWBW current bank id byte adr
 
 ; UNA BIOS banked memory functions
 UNABIOS_ENTRY      .equ 0x08 ; entry vector
@@ -93,8 +93,8 @@ _bankswitch_get_current_bank:
     ld hl, #0
     ret
 getbank_romwbw:
-    call #ROMWBW_GETBNK
-    ; returns page number in A
+    ; load current page number to A
+    ld a, (#ROMWBW_CURBNK)
     ld h, #0
     ld l, a
     ret
