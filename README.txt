@@ -9,11 +9,10 @@ FLASH4 has been tested and confirmed working on:
  * N8VEM N8-2312
  * N8VEM Mark IV SBC
  * DX-Designs P112
+ * ZETA SBC v2
 
 However it remains somewhat experimental. If it works for you, please let me
-know. If it breaks please also let me know so I can fix it! Until it is more
-widely tested please ensure you have some other means to reprogram your flash
-ROM before exclusively trusting FLASH4.
+know. If it breaks please also let me know so I can fix it!
 
 
 = Introduction =
@@ -109,10 +108,11 @@ One of the following optional command line arguments may be specified at the
 end of the command line to force FLASH4 to use a particular method to access
 the flash ROM chip:
 
-  /ROMWBW
-  /UNABIOS
-  /Z180DMA
-  /P112
+  /ROMWBW         For ROMWBW BIOS version 2.6 and later
+  /ROMWBWOLD      For ROMWBW BIOS version 2.5 and earlier
+  /UNABIOS        For UNA BIOS
+  /Z180DMA        For Z180 DMA
+  /P112           For DX-Designs P112
 
 If no option is specified FLASH4 attempts to determine the best available
 method automatically.

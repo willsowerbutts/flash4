@@ -17,7 +17,8 @@ typedef enum {
 typedef enum { 
     ACCESS_NONE, 
     ACCESS_AUTO,
-    ACCESS_ROMWBW,
+    ACCESS_ROMWBW_OLD, // prior to v2.6
+    ACCESS_ROMWBW_26,  // v2.6 and later
     ACCESS_UNABIOS, 
     ACCESS_Z180DMA,
     ACCESS_P112,
@@ -412,6 +413,12 @@ bool una_bios_present(void)
 
 bool romwbw_bios_present(void)
 {
+    unsigned int **bios_signature = (unsigned int **)BIOS_SIGNATURE_ADDR;
+    return (**bios_signature == BIOS_SIGNATURE_ROMWBW_26);
+}
+
+bool old_romwbw_bios_present(void)
+{
     return (*((unsigned int*)CPM_SIGNATURE_ADDR) == CPM_SIGNATURE_ROMWBW);
 }
 
@@ -430,11 +437,14 @@ access_t access_auto_select(void)
     if(una_bios_present())
         return ACCESS_UNABIOS;
 
-    if(romwbw_bios_present())
-        return ACCESS_ROMWBW;
-
     if(bpbios_p112_present())
         return ACCESS_P112;
+
+    if(romwbw_bios_present()) // important to check this before old_romwbw_bios_present()
+        return ACCESS_ROMWBW_26;
+
+    if(old_romwbw_bios_present())
+        return ACCESS_ROMWBW_OLD;
 
     if(detect_z180_cpu())
         return ACCESS_Z180DMA;
@@ -449,14 +459,16 @@ void main(int argc, char *argv[])
     cpm_fcb imagefile;
     bool allow_partial=false;
     bool rom_mode=false;
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.0\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.2\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
         if(strcmp(argv[i], "/Z180DMA") == 0)
             access = ACCESS_Z180DMA;
+        else if(strcmp(argv[i], "/ROMWBWOLD") == 0)
+            access = ACCESS_ROMWBW_OLD;
         else if(strcmp(argv[i], "/ROMWBW") == 0)
-            access = ACCESS_ROMWBW;
+            access = ACCESS_ROMWBW_26;
         else if(strcmp(argv[i], "/UNABIOS") == 0)
             access = ACCESS_UNABIOS;
         else if(strcmp(argv[i], "/P112") == 0)
@@ -495,9 +507,13 @@ void main(int argc, char *argv[])
             printf("Using UNA BIOS bank switching.\n");
             init_bankswitch(BANKSWITCH_UNABIOS);
             break;
-        case ACCESS_ROMWBW:
-            printf("Using RomWBW bank switching.\n");
-            init_bankswitch(BANKSWITCH_ROMWBW);
+        case ACCESS_ROMWBW_OLD:
+            printf("Using RomWBW (old) bank switching.\n");
+            init_bankswitch(BANKSWITCH_ROMWBW_OLD);
+            break;
+        case ACCESS_ROMWBW_26:
+            printf("Using RomWBW (v2.6+) bank switching.\n");
+            init_bankswitch(BANKSWITCH_ROMWBW_26);
             break;
         case ACCESS_P112:
             printf("Using P112 bank switching.\n");
@@ -549,10 +565,11 @@ void main(int argc, char *argv[])
                "\tFLASH4 WRITE filename [options]\n\n" \
                "Options (access method is auto-detected by default)\n" \
                "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
-               "\t/ROM\tAllow read-only use of unknown chip types\n" \
+               "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
                "\t/Z180DMA\tForce Z180 DMA engine\n" \
-               "\t/ROMWBW \tForce RomWBW bank switching\n" \
                "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
+               "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
+               "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
                "\t/P112\t\tForce P112 bank switching\n");
         return;
     }

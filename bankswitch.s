@@ -11,8 +11,10 @@
     .globl _una_entry_vector
 
 ; RomWBW entry vectors
-ROMWBW_SETBNK      .equ 0xFC06
-ROMWBW_GETBNK      .equ 0xFC09
+ROMWBW_OLD_SETBNK  .equ 0xFC06  ; prior to v2.6
+ROMWBW_OLD_GETBNK  .equ 0xFC09  ; prior to v2.6
+ROMWBW_SETBNK      .equ 0xFFF3  ; v2.6 and later (function vector)
+ROMWBW_CURBNK      .equ 0xFFE0  ; v2.6 and later (byte variable)
 
 ; UNA BIOS banked memory functions
 UNABIOS_ENTRY      .equ 0x08 ; entry vector
@@ -32,14 +34,20 @@ P112_SCR           .equ 0xEF ; System config register
 loadbank:
     ld a, (_bank_switch_method)
     or a
-    jr z, loadbank_romwbw
+    jr z, loadbank_romwbw_old
     dec a
     jr z, loadbank_unabios
     dec a
     jr z, loadbank_p112
+    dec a
+    jr z, loadbank_romwbw_26
     ; well, this is unexpected
     ret
-loadbank_romwbw:
+loadbank_romwbw_old:
+    ld a, l
+    call #ROMWBW_OLD_SETBNK
+    ret
+loadbank_romwbw_26:
     ld a, l
     call #ROMWBW_SETBNK
     ret
@@ -84,17 +92,24 @@ unmap_p112_rom:
 _bankswitch_get_current_bank:
     ld a, (_bank_switch_method)
     or a
-    jr z, getbank_romwbw
+    jr z, getbank_romwbw_old
     dec a
     jr z, getbank_unabios
     dec a
     jr z, getbank_p112
+    dec a
+    jr z, getbank_romwbw_26
     ; well, this is unexpected
     ld hl, #0
     ret
-getbank_romwbw:
-    call #ROMWBW_GETBNK
+getbank_romwbw_old:
+    call #ROMWBW_OLD_GETBNK
     ; returns page number in A
+    ld h, #0
+    ld l, a
+    ret
+getbank_romwbw_26:
+    ld a, (ROMWBW_CURBNK)
     ld h, #0
     ld l, a
     ret

@@ -1,9 +1,10 @@
-#ifndef __ROMWBW_DOT_H__
-#define __ROMWBW_DOT_H__
+#ifndef __BANKSWITCH_DOT_H__
+#define __BANKSWITCH_DOT_H__
 
-#define BANKSWITCH_ROMWBW   0
-#define BANKSWITCH_UNABIOS  1
-#define BANKSWITCH_P112     2
+#define BANKSWITCH_ROMWBW_OLD   0 // prior to v2.6
+#define BANKSWITCH_UNABIOS      1
+#define BANKSWITCH_P112         2
+#define BANKSWITCH_ROMWBW_26    3 // v2.6 and later
 
 void init_bankswitch(unsigned char method);
 unsigned int bankswitch_get_current_bank(void);
