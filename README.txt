@@ -9,6 +9,7 @@ FLASH4 has been tested and confirmed working on:
  * N8VEM N8-2312
  * N8VEM Mark IV SBC
  * DX-Designs P112
+ * ZETA SBC v1
  * ZETA SBC v2
 
 However it remains somewhat experimental. If it works for you, please let me
