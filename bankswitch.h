@@ -5,6 +5,7 @@
 #define BANKSWITCH_UNABIOS      1
 #define BANKSWITCH_P112         2
 #define BANKSWITCH_ROMWBW_26    3 // v2.6 and later
+#define BANKSWITCH_N8VEM_SBC    4
 
 void init_bankswitch(unsigned char method);
 unsigned int bankswitch_get_current_bank(void);

@@ -17,11 +17,14 @@ typedef enum {
 typedef enum { 
     ACCESS_NONE, 
     ACCESS_AUTO,
+    // through BIOS interfaces:
     ACCESS_ROMWBW_OLD, // prior to v2.6
     ACCESS_ROMWBW_26,  // v2.6 and later
     ACCESS_UNABIOS, 
+    // direct hardware poking:
     ACCESS_Z180DMA,
     ACCESS_P112,
+    ACCESS_N8VEM_SBC,
 } access_t;
 
 static action_t action = ACTION_UNKNOWN;
@@ -459,7 +462,7 @@ void main(int argc, char *argv[])
     cpm_fcb imagefile;
     bool allow_partial=false;
     bool rom_mode=false;
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.2\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.3\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -473,6 +476,8 @@ void main(int argc, char *argv[])
             access = ACCESS_UNABIOS;
         else if(strcmp(argv[i], "/P112") == 0)
             access = ACCESS_P112;
+        else if(strcmp(argv[i], "/N8VEMSBC") == 0)
+            access = ACCESS_N8VEM_SBC;
         else if(strcmp(argv[i], "/ROM") == 0)
             rom_mode = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
@@ -518,6 +523,10 @@ void main(int argc, char *argv[])
         case ACCESS_P112:
             printf("Using P112 bank switching.\n");
             init_bankswitch(BANKSWITCH_P112);
+            break;
+        case ACCESS_N8VEM_SBC:
+            printf("Using N8VEM SBC bank switching.\n");
+            init_bankswitch(BANKSWITCH_N8VEM_SBC);
             break;
         case ACCESS_NONE:
         case ACCESS_AUTO:

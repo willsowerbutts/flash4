@@ -27,6 +27,10 @@ P112_DCNTL         .equ 0x32 ; Device control register
 P112_BBR           .equ 0x39 ; Bank base register
 P112_SCR           .equ 0xEF ; System config register
 
+; N8VEM SBC hardware control registers
+N8VEM_MPCL_RAM     .equ 0x78 ; IO address of RAM memory pager configuration latch
+N8VEM_MPCL_ROM     .equ 0x7C ; IO address of ROM memory pager configuration latch
+
     .area _CODE
     .z180
 
@@ -41,7 +45,14 @@ loadbank:
     jr z, loadbank_p112
     dec a
     jr z, loadbank_romwbw_26
+    dec a
+    jr z, loadbank_n8vem_sbc
     ; well, this is unexpected
+    ret
+loadbank_n8vem_sbc:
+    ld a, l
+    out (N8VEM_MPCL_ROM), a
+    out (N8VEM_MPCL_RAM), a
     ret
 loadbank_romwbw_old:
     ld a, l
@@ -99,8 +110,13 @@ _bankswitch_get_current_bank:
     jr z, getbank_p112
     dec a
     jr z, getbank_romwbw_26
+    dec a
+    jr z, getbank_n8vem_sbc
     ; well, this is unexpected
     ld hl, #0
+    ret
+getbank_n8vem_sbc:
+    ld hl, #0x0080      ; we assume that it's the first page of RAM
     ret
 getbank_romwbw_old:
     call #ROMWBW_OLD_GETBNK
