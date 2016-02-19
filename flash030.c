@@ -2,6 +2,8 @@
     FLASH030: in-system flash ROM programmer for Linux on KISS-68030, based on FLASH4.
     (c) Will Sowerbutts <will@sowerbutts.com> 2016-02-19
     GPL Licensed 
+
+    Compile with: gcc -O2 -Wall flash030.c -o flash030
 */
 
 #include <errno.h>
