@@ -385,6 +385,8 @@ int main(int argc, const char *argv[])
     const char *filename = NULL;
     printf("FLASH030 by Will Sowerbutts <will@sowerbutts.com> version 1.0.0\n\n");
 
+    sync(); // just in case we break something
+
     // command line arguments
     for(i=1; i<argc; i++){
         if(strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--partial") == 0){
