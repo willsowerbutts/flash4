@@ -353,6 +353,7 @@ unsigned char *read_rom_image(int img_fd)
         r = read(img_fd, &img_data[offset], img_size - offset);
         if(r < 0){
             printf("read() failed: %s\n", strerror(errno));
+            free(img_data);
             return NULL;
         }
         offset += r;
