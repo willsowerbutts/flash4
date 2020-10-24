@@ -67,7 +67,6 @@ static flashrom_chip_t flashrom_chips[] = {
 
 /* special ROM entry for ROM/EPROM/EEPROM with /ROM switch */
 static flashrom_chip_t rom_chip = { 0x0000, "rom", 8, 512, 0 }; /* 512 x 1KB "sectors" */
-
 static flashrom_chip_t *flashrom_type = NULL;
 static unsigned long flashrom_size; /* bytes */
 static unsigned long flashrom_sector_size; /* bytes */
@@ -458,11 +457,13 @@ access_t access_auto_select(void)
 void main(int argc, char *argv[])
 {
     int i;
+    int device_qty=1;
     unsigned int mismatch;
     cpm_fcb imagefile;
     bool allow_partial=false;
     bool rom_mode=false;
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.2.3\n\n");
+
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.0\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -482,6 +483,9 @@ void main(int argc, char *argv[])
             rom_mode = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
+        else if(strcmp(argv[i], "/2") == 0)
+            {   device_qty = 2; 
+            bank_mask = 0x0f; }
         else if(argv[i][0] == '/'){
             printf("Unrecognised option \"%s\"\n", argv[i]);
             return;
@@ -561,6 +565,10 @@ void main(int argc, char *argv[])
     printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
             flashrom_type->sector_count, flashrom_sector_size,
             flashrom_size >> 10);
+    
+    printf("Flashing %d device.\n", device_qty);
+    
+    flashrom_type->sector_count = device_qty*flashrom_type->sector_count;
 
     if(access == ACCESS_P112 && flashrom_size > 32768){
         printf("P112 can address only first 32KB: Partial mode enabled.\n");
@@ -579,7 +587,8 @@ void main(int argc, char *argv[])
                "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
                "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
                "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
-               "\t/P112\t\tForce P112 bank switching\n");
+               "\t/P112\t\tForce P112 bank switching\n" \
+               "\t/2\t\tProgram two devices\n");
         return;
     }
 

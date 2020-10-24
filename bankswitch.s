@@ -9,6 +9,7 @@
     .globl _default_mem_bank
     .globl _bank_switch_method
     .globl _una_entry_vector
+    .globl _bank_mask
 
 ; RomWBW entry vectors
 ROMWBW_OLD_SETBNK  .equ 0xFC06  ; prior to v2.6
@@ -149,8 +150,10 @@ selectaddr:
     ld hl,#6        ; we're interested initially in sp+6 and sp+5
     add hl,sp
     ; compute (address >> 15) & 0x0f
-    ld a, (hl)      ; top three bits we want are in here
-    and #0x7        ; mask off low three bits
+    ld a, (_bank_mask)
+    ld b,a
+    ld a, (hl)      ; top bits we want are in here
+    and b           ; mask off low bits
     add a, a        ; shift left one place
     dec hl          ; hl is now sp+5
     bit 7, (hl)     ; test top bit

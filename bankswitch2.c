@@ -6,6 +6,7 @@
 unsigned int default_mem_bank;
 unsigned char bank_switch_method = 0xff;
 unsigned int una_entry_vector = 0;
+unsigned char bank_mask = 0x07;
 
 void init_bankswitch(unsigned char method)
 {
