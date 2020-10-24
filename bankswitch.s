@@ -149,7 +149,7 @@ selectaddr:
     ; 32-bit address is at sp+4 through sp+7
     ld hl,#6        ; we're interested initially in sp+6 and sp+5
     add hl,sp
-    ; compute (address >> 15) & 0x0f
+    ; compute bank number
     ld a, (_bank_mask)
     ld b,a
     ld a, (hl)      ; top bits we want are in here
@@ -160,7 +160,7 @@ selectaddr:
     jr z, bankready
     or #1           ; set low bit if required
 bankready:
-    ; now A contains (address >> 15) & 0x0f -- let's select that bank!
+    ; now A contains desired bank number -- let's select that bank!
     push hl         ; we'll need this in a moment
     ld h, #0
     ld l, a

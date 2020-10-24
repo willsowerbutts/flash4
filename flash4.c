@@ -483,10 +483,13 @@ void main(int argc, char *argv[])
             rom_mode = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
-        else if(strcmp(argv[i], "/2") == 0)
-            {   device_qty = 2; 
-            bank_mask = 0x0f; }
-        else if(argv[i][0] == '/'){
+        else if(strcmp(argv[i], "/2") == 0) {
+            if(device_qty == 1){
+                device_qty = 2;
+                /* with two devices we have one extra address bit */
+                bank_mask = (bank_mask << 1) | 1;
+            }
+        } else if(argv[i][0] == '/'){
             printf("Unrecognised option \"%s\"\n", argv[i]);
             return;
         }
@@ -504,6 +507,10 @@ void main(int argc, char *argv[])
 
     switch(access){
         case ACCESS_Z180DMA:
+            if(device_qty != 1){
+                printf("Z180 DMA engine supports programming a single device only.\n");
+                return;
+            }
             printf("Using Z180 DMA engine.\n");
             init_z180dma();
             flashrom_chip_read    = flashrom_chip_read_z180dma;
@@ -565,9 +572,11 @@ void main(int argc, char *argv[])
     printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
             flashrom_type->sector_count, flashrom_sector_size,
             flashrom_size >> 10);
-    
-    printf("Flashing %d device.\n", device_qty);
-    
+
+    if(device_qty > 1){
+        printf("Flashing %d devices\n", device_qty);
+    }
+
     flashrom_type->sector_count = device_qty*flashrom_type->sector_count;
 
     if(access == ACCESS_P112 && flashrom_size > 32768){

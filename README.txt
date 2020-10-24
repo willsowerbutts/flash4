@@ -166,6 +166,12 @@ sector-by-sector operation:
 If you use a flash ROM chip that is not listed above please email me
 (will@sowerbutts.com) and I will try to add support for it.
 
+The "Megaflash" version of the Retrobrew Computers SBC-V2 contains 1MB of flash
+ROM implemented using two 512KB flash ROM chips. To enable support for
+addressing the full 1MB across both chips, use the command line option "/2".
+Note that only the type of the first flash ROM chip is detected, it is assumed
+that the second chip is always an identical type.
+
 
 = Compiling =
 
