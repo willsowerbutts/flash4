@@ -68,8 +68,10 @@ static flashrom_chip_t flashrom_chips[] = {
 /* special ROM entry for ROM/EPROM/EEPROM with /ROM switch */
 static flashrom_chip_t rom_chip = { 0x0000, "rom", 8, 512, 0 }; /* 512 x 1KB "sectors" */
 static flashrom_chip_t *flashrom_type = NULL;
-static unsigned long flashrom_size; /* bytes */
-static unsigned long flashrom_sector_size; /* bytes */
+static unsigned int chip_count = 1;        /* number of chips */
+static unsigned long flashrom_chip_size;   /* individual chip size, in bytes */
+static unsigned long flashrom_size;        /* total size of all chips, in bytes; always equal to chip_count * flashrom_chip_size */
+static unsigned long flashrom_sector_size; /* chip sector size, in bytes */
 
 /* function pointers set at runtime to switch between bank switching and Z180 DMA engine */
 void (*flashrom_chip_write)(unsigned long address, unsigned char value) = NULL;
@@ -116,15 +118,15 @@ void flashrom_wait_toggle_bit(unsigned long address)
     }while(a != b);
 }
 
-void flashrom_chip_erase(void)
+void flashrom_chip_erase(unsigned long base_address)
 {
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
-    flashrom_chip_write(0x5555, 0x80);
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
-    flashrom_chip_write(0x5555, 0x10);
-    flashrom_wait_toggle_bit(0);
+    flashrom_chip_write(base_address | 0x5555, 0xAA);
+    flashrom_chip_write(base_address | 0x2AAA, 0x55);
+    flashrom_chip_write(base_address | 0x5555, 0x80);
+    flashrom_chip_write(base_address | 0x5555, 0xAA);
+    flashrom_chip_write(base_address | 0x2AAA, 0x55);
+    flashrom_chip_write(base_address | 0x5555, 0x10);
+    flashrom_wait_toggle_bit(base_address);
 }
 
 void flashrom_sector_erase(unsigned long address)
@@ -163,26 +165,51 @@ void delay10ms(void)
         b++;
 }
 
-bool flashrom_identify(void)
+unsigned int flashrom_identify_device(unsigned long base_address)
 {
     unsigned int flashrom_device_id;
 
     /* put the flash memory into identify mode */
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
-    flashrom_chip_write(0x5555, 0x90);
+    flashrom_chip_write(base_address | 0x5555, 0xAA);
+    flashrom_chip_write(base_address | 0x2AAA, 0x55);
+    flashrom_chip_write(base_address | 0x5555, 0x90);
 
     /* atmel 29C parts require a pause for 10msec at this point */
     delay10ms();
 
     /* load manufacturer and device IDs */
-    flashrom_device_id = ((unsigned int)flashrom_chip_read(0x0000) << 8) | flashrom_chip_read(0x0001);
+    flashrom_device_id = ((unsigned int)flashrom_chip_read(base_address) << 8) | flashrom_chip_read(base_address | 0x0001);
 
     /* put the flash memory back into read mode */
-    flashrom_chip_write(0x5555, 0xF0);
+    flashrom_chip_write(base_address | 0x5555, 0xF0);
 
     /* atmel 29C parts require a pause for 10msec at this point */
     delay10ms();
+
+    return flashrom_device_id;
+}
+
+void flashrom_setup(void)
+{
+    if(flashrom_type){
+        flashrom_sector_size = (unsigned long)flashrom_type->sector_size * 128L;
+        flashrom_chip_size = flashrom_sector_size * (unsigned long)flashrom_type->sector_count;
+    }else{
+        /* reset parameters */
+        flashrom_chip_size = 0;
+        flashrom_sector_size = 0;
+    }
+
+    flashrom_size = flashrom_chip_size * (unsigned long)chip_count;
+}
+
+bool flashrom_identify(void)
+{
+    unsigned int flashrom_device_id;
+    unsigned long address = 0;
+    int chip;
+
+    flashrom_device_id = flashrom_identify_device(address);
 
     printf("Flash memory chip ID is 0x%04X: ", flashrom_device_id);
 
@@ -195,23 +222,23 @@ bool flashrom_identify(void)
         flashrom_type = NULL;
         printf("Unknown flash chip.\n");
         return false;
-    }else{
-        printf("%s\n", flashrom_type->chip_name);
-        return true;
-    }
-}
-
-void flashrom_setup(void)
-{
-    if(flashrom_type){
-        flashrom_sector_size = (long)flashrom_type->sector_size * 128L;
-        flashrom_size = flashrom_sector_size * (long)flashrom_type->sector_count;
-    }else{
-        /* reset parameters */
-        flashrom_size = 0;
-        flashrom_sector_size = 0;
     }
 
+    printf("%s\n", flashrom_type->chip_name);
+    flashrom_setup();
+
+    /* check any additional chips are of the same type */
+    for(chip=1; chip < chip_count; chip++){
+        address += flashrom_chip_size;
+        flashrom_device_id = flashrom_identify_device(address);
+        if(flashrom_device_id != flashrom_type->chip_id){
+            printf("Mismatched chip types: Flash chip %d has ID 0x%04X\n", 1+chip, flashrom_device_id);
+            printf("This program requires all flash chips to be of the same type.\n");
+            cpm_abort();
+        }
+    }
+
+    return true;
 }
 
 void flashrom_read(cpm_fcb *outfile)
@@ -268,7 +295,7 @@ bool read_data_from_file(cpm_fcb *infile, unsigned int block, unsigned int count
 
 unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
 {
-    unsigned int sector=0, block=0, subsector=0, mismatch=0;
+    unsigned int sector_count, sector=0, block=0, subsector=0, mismatch=0;
     unsigned int subsectors_per_sector, blocks_per_subsector, bytes_per_subsector;
     unsigned long flash_address;
     bool verify_okay;
@@ -300,8 +327,10 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         abort_and_solicit_report();
     }
 
-    for(sector=0; (sector < flashrom_type->sector_count) && !eof; sector++){
-        printf("\r%s: sector %d/%d   ", perform_write ? "Write" : "Verify", sector, flashrom_type->sector_count);
+    sector_count = chip_count * flashrom_type->sector_count;
+
+    for(sector=0; (sector < sector_count) && !eof; sector++){
+        printf("\r%s: sector %d/%d   ", perform_write ? "Write" : "Verify", sector, sector_count);
 
         /* verify sector */
         flash_address = flashrom_sector_address(sector);
@@ -337,11 +366,11 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                     /* This type of chip has a combined erase/program cycle that programs a whole
                        sector at once. The sectors are quite small (128 or 256 bytes) so there is
                        exactly 1 subsector (and we employ a sanity check to ensure this is true).
-                       Additionally we can be sure that we are not at EOF yet.        */
+                       Additionally we can be sure that we are not at EOF yet. */
                     flashrom_sector_program(flash_address, filebuffer, bytes_per_subsector);
                 }else{
                     if(flashrom_type->strategy & ST_ERASE_CHIP)
-                        flashrom_chip_erase();
+                        flashrom_chip_erase(flash_address);
                     else
                         flashrom_sector_erase(flash_address);
 
@@ -370,12 +399,12 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
 
     /* report outcome */
     if(perform_write){
-        printf("\rWrite complete: Reprogrammed %d/%d sectors.\n", mismatch, flashrom_type->sector_count);
+        printf("\rWrite complete: Reprogrammed %d/%d sectors.\n", mismatch, sector_count);
     }else{
-        if(sector != flashrom_type->sector_count)
-            printf("\rPartial verify (%d/%d sectors)", sector-1, flashrom_type->sector_count);
+        if(sector != sector_count)
+            printf("\rPartial verify (%d/%d sectors)", sector-1, sector_count);
         else
-            printf("\rVerify (%d sectors)", flashrom_type->sector_count);
+            printf("\rVerify (%d sectors)", sector_count);
 
         if(mismatch){
             printf(" complete: %d sectors contain errors.\n", mismatch);
@@ -393,7 +422,7 @@ bool check_file_size(cpm_fcb *imagefile, bool allow_partial)
     unsigned int rom_size;
 
     file_size = cpm_f_getsize(imagefile);
-    rom_size = (flashrom_type->sector_count * flashrom_type->sector_size);
+    rom_size = flashrom_type->sector_count * flashrom_type->sector_size * chip_count;
 
     if(file_size == rom_size)
         return true;
@@ -457,13 +486,12 @@ access_t access_auto_select(void)
 void main(int argc, char *argv[])
 {
     int i;
-    int device_qty=1;
     unsigned int mismatch;
     cpm_fcb imagefile;
     bool allow_partial=false;
     bool rom_mode=false;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.0\n\n");
+    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.1\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -484,8 +512,8 @@ void main(int argc, char *argv[])
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
         else if(strcmp(argv[i], "/2") == 0) {
-            if(device_qty == 1){
-                device_qty = 2;
+            if(chip_count == 1){
+                chip_count = 2;
                 /* with two devices we have one extra address bit */
                 bank_mask = (bank_mask << 1) | 1;
             }
@@ -507,7 +535,7 @@ void main(int argc, char *argv[])
 
     switch(access){
         case ACCESS_Z180DMA:
-            if(device_qty != 1){
+            if(chip_count != 1){
                 printf("Z180 DMA engine supports programming a single device only.\n");
                 return;
             }
@@ -562,26 +590,22 @@ void main(int argc, char *argv[])
         if(rom_mode && (action == ACTION_VERIFY || action == ACTION_READ)){
             printf("Assuming 512KB ROM\n");
             flashrom_type = &rom_chip;
+            flashrom_setup();
         }else{
             abort_and_solicit_report();
         }
     }
 
-    flashrom_setup();
-
-    printf("Flash memory has %d sectors of %ld bytes, total %dKB\n", 
+    printf("Flash memory has %d chip%s, %d sectors of %ld bytes, total %dKB\n",
+            chip_count, chip_count == 1 ? "":"s", 
             flashrom_type->sector_count, flashrom_sector_size,
             flashrom_size >> 10);
-
-    if(device_qty > 1){
-        printf("Flashing %d devices\n", device_qty);
-    }
-
-    flashrom_type->sector_count = device_qty*flashrom_type->sector_count;
 
     if(access == ACCESS_P112 && flashrom_size > 32768){
         printf("P112 can address only first 32KB: Partial mode enabled.\n");
         allow_partial = true;
+        chip_count = 1;
+        flashrom_chip_size = 32768;
         flashrom_size = 32768;
     }
 
