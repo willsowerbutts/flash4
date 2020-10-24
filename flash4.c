@@ -67,7 +67,6 @@ static flashrom_chip_t flashrom_chips[] = {
 
 /* special ROM entry for ROM/EPROM/EEPROM with /ROM switch */
 static flashrom_chip_t rom_chip = { 0x0000, "rom", 8, 512, 0 }; /* 512 x 1KB "sectors" */
-/*;static unsigned char default_bank_mask = 0x7; */
 static flashrom_chip_t *flashrom_type = NULL;
 static unsigned long flashrom_size; /* bytes */
 static unsigned long flashrom_sector_size; /* bytes */
