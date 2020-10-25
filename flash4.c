@@ -15,6 +15,8 @@ typedef enum {
     ACTION_VERIFY 
 } action_t;
 
+static action_t action = ACTION_UNKNOWN;
+
 typedef enum { 
     ACCESS_NONE, 
     ACCESS_AUTO,
@@ -28,10 +30,12 @@ typedef enum {
     ACCESS_N8VEM_SBC,
 } access_t;
 
-static action_t action = ACTION_UNKNOWN;
 static access_t access = ACCESS_AUTO;
-static bool chip_count_forced = false;
-static bool verbose = false;
+
+/* the strategy flags describe quirks for programming particular chips */
+#define ST_NORMAL               (0x00) /* default: no special strategy required */
+#define ST_PROGRAM_SECTORS      (0x01) /* bit 0: program sector (not byte) at a time (Atmel AT29C style) */
+#define ST_ERASE_CHIP           (0x02) /* bit 1: erase whole chip (sector_count must be exactly 1) instead of individual sectors */
 
 typedef struct {
     unsigned int chip_id;
@@ -40,11 +44,6 @@ typedef struct {
     unsigned int sector_count;
     unsigned char strategy;
 } flashrom_chip_t; 
-
-/* the strategy flags describe quirks for programming particular chips */
-#define ST_NORMAL               (0x00) /* default: no special strategy required */
-#define ST_PROGRAM_SECTORS      (0x01) /* bit 0: program sector (not byte) at a time (Atmel AT29C style) */
-#define ST_ERASE_CHIP           (0x02) /* bit 1: erase whole chip (sector_count must be exactly 1) instead of individual sectors */
 
 static flashrom_chip_t flashrom_chips[] = {
     { 0x0120, "29F010",      128,    8, ST_NORMAL },
@@ -71,6 +70,9 @@ static flashrom_chip_t flashrom_chips[] = {
 /* special ROM entry for ROM/EPROM/EEPROM with /ROM switch */
 static flashrom_chip_t rom_chip = { 0x0000, "rom", 8, 512, 0 }; /* 512 x 1KB "sectors" */
 static flashrom_chip_t *flashrom_type = NULL;
+
+static bool verbose = false;
+static bool chip_count_forced = false;
 static unsigned int chip_count = 1;        /* number of chips */
 static unsigned long flashrom_chip_size;   /* individual chip size, in bytes */
 static unsigned long flashrom_size;        /* total size of all chips, in bytes; always equal to chip_count * flashrom_chip_size */
@@ -238,9 +240,8 @@ bool flashrom_identify(void)
         return false;
     }
 
-    printf("%s\n", flashrom_type->chip_name);
-
     flashrom_setup();
+    printf("%s (%dKB)\n", flashrom_type->chip_name, flashrom_type->sector_size * flashrom_type->sector_count / 8);
 
     /* RomWBW reports the number of 32KB ROM banks, allowing us to auto-detect 
        when multiple chips are installed. Do this only if the user has not
@@ -249,7 +250,7 @@ bool flashrom_identify(void)
     if(rom_bank_count && !chip_count_forced){
         chip = rom_bank_count / (int)(flashrom_chip_size >> 15);
         if(chip > 1){
-            printf("BIOS reports %d x 32K ROM banks: %d chips\n", rom_bank_count, chip);
+            printf("BIOS reports %d x 32KB ROM banks: %d chips\n", rom_bank_count, chip);
             chip_count = chip;
             flashrom_setup();
         }
