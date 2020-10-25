@@ -1,5 +1,5 @@
 
-           FLASH4 (c) 2014 William R Sowerbutts <will@sowerbutts.com>
+        FLASH4 (c) 2014-2020 William R Sowerbutts <will@sowerbutts.com>
                           http://sowerbutts.com/8bit/
 
 = Warning =
