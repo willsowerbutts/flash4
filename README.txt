@@ -169,8 +169,7 @@ If you use a flash ROM chip that is not listed above please email me
 The "Megaflash" version of the Retrobrew Computers SBC-V2 contains 1MB of flash
 ROM implemented using two 512KB flash ROM chips. To enable support for
 addressing the full 1MB across both chips, use the command line option "/2".
-Note that only the type of the first flash ROM chip is detected, it is assumed
-that the second chip is always an identical type.
+Both flash chips must be the same type.
 
 
 = Compiling =
@@ -180,7 +179,7 @@ toolchain and the SRecord tools. A Makefile is provided to build the executable
 in Linux and I imagine it can be easily modified to build in Windows.
 
 You may need to adjust the path to the SDCC libraries in the Makefile if your
-sdcc installation is not in /usr/local
+sdcc installation is not in /usr/local or /usr
 
 
 = License =
