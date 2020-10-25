@@ -4,9 +4,6 @@
 #include "z180dma.h"
 #include "buffers.h"
 
-#define Z180_IO_BASE (0x40)
-#include <z180/z180.h>
-
 static unsigned char byte_buffer;        /* buffer for single byte to transfer to/from flash memory */
 static unsigned long byte_buffer_paddr;  /* physical address of byte_buffer */
 
@@ -16,21 +13,23 @@ static unsigned long byte_buffer_paddr;  /* physical address of byte_buffer */
 unsigned long virtual_to_physical(void *_vaddr)
 {
     unsigned int vaddr=(unsigned int)_vaddr;
+    unsigned char cbar;
 
     /* memory is arranged as (low->high) common0, banked, common1 */
     /* physical base of common0 is always 0. banked, common1 base specified by BBR, CBR */
     /* virtual start of banked, common1 specified by CBAR */
 
-    if(vaddr < ((unsigned int)(CBAR & 0x0F)) << 12){ /* if address is before banked base, it's in common0 */
+    cbar = z180_cbar();
+    if(vaddr < ((unsigned int)(cbar & 0x0F)) << 12){ /* if address is before banked base, it's in common0 */
         return vaddr; /* unmapped */
     }
 
-    if(vaddr < ((unsigned int)(CBAR & 0xF0)) << 8){ /* if before common1 base, it's in banked */
-        return ((unsigned long)BBR << 12) + vaddr;
+    if(vaddr < ((unsigned int)(cbar & 0xF0)) << 8){ /* if before common1 base, it's in banked */
+        return ((unsigned long)z180_bbr() << 12) + vaddr;
     }
 
     /* it's in common1 */
-    return ((unsigned long)CBR << 12) + vaddr;
+    return ((unsigned long)z180_cbr() << 12) + vaddr;
 }
 
 void flashrom_chip_write_z180dma(unsigned long address, unsigned char value)

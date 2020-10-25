@@ -2,6 +2,9 @@
     .hd64
 
     .globl _dma_memory
+    .globl _z180_cbr
+    .globl _z180_bbr
+    .globl _z180_cbar
 
 _SAR0L	=	0x0060
 _SAR0H	=	0x0061
@@ -14,8 +17,23 @@ _BCR0H	=	0x0067
 _DSTAT	=	0x0070
 _DMODE	=	0x0071
 _DCNTL	=	0x0072
+_CBR	=	0x0038
+_BBR	=	0x0039
+_CBAR	=	0x003A
 
     .area _CODE
+
+_z180_cbr:
+    in0 l, (_CBR)
+    ret
+
+_z180_bbr:
+    in0 l, (_BBR)
+    ret
+
+_z180_cbar:
+    in0 l, (_CBAR)
+    ret
 
 _dma_memory:
     push ix
