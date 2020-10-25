@@ -109,18 +109,20 @@ unsigned long flashrom_sector_address(unsigned int sector)
 
 void flashrom_wait_toggle_bit(unsigned long address)
 {
-    unsigned char a, b;
+    unsigned char a, b, matches=0;
 
     /* wait for toggle bit to indicate completion */
+
+    /* data sheet says two additional reads are required to match 
+     * after the first match */
     do{
         a = flashrom_chip_read(address);
         b = flashrom_chip_read(address);
-        if(a==b){
-            /* data sheet says two additional reads are required */
-            a = flashrom_chip_read(address);
-            b = flashrom_chip_read(address);
-        }
-    }while(a != b);
+        if(a==b)
+            matches++;
+        else
+            matches=0;
+    }while(matches < 2);
 }
 
 unsigned long chip_base_address(unsigned long address)
