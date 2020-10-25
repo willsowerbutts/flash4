@@ -187,8 +187,8 @@ bankready:
     ; now compute bank offset
     ld d, (hl)      ; load top byte of the word
     res 7, d        ; clear out the top bit (already used for the bank number)
-    dec hl          ; hl is now sp+4
-    ld e, (hl)      ; low low byte of the word
+    dec hl          ; HL is now SP+4
+    ld e, (hl)      ; load low byte of the word
     ret             ; return with bank selected, DE containing the offset (range 0--0x7FFF)
 
 _flashrom_chip_read_bankswitch:
