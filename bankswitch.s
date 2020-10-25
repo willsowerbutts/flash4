@@ -10,7 +10,6 @@
     .globl _default_mem_bank
     .globl _bank_switch_method
     .globl _una_entry_vector
-    .globl _bank_mask
 
 ; RomWBW entry vectors
 ROMWBW_OLD_SETBNK  .equ 0xFC06  ; prior to v2.6
@@ -162,31 +161,35 @@ getbank_p112:
 
 selectaddr:
     ; 32-bit address is at sp+4 through sp+7
-    ld hl,#6        ; we're interested initially in sp+6 and sp+5
-    add hl,sp
-    ; compute bank number
-    ld a, (_bank_mask)
-    ld b,a
-    ld a, (hl)      ; top bits we want are in here
-    and b           ; mask off low bits
+    ; The code below is limited to 256 x 32KB banks = 8MB
+    ; eg for flash address = 0x654321:
+    ; mem addr: SP+4 SP+5 SP+6 SP+7
+    ; contents:  21   43   65   00
+    ; bank number = address >> 15    = 0xCA   -- data in SP+6 (7 bits), SP+5 (1 bit)
+    ; bank offset = address & 0x7FFF = 0x4321 -- data in SP+5 (7 bits), SP+4 (8 bits)
+
+    ; first compute bank number
+    ld hl,#6
+    add hl,sp       ; HL is now SP+6
+    ld a, (hl)      ; 7 bits we want are in here
     add a, a        ; shift left one place
-    dec hl          ; hl is now sp+5
+    dec hl          ; HL is now SP+5
     bit 7, (hl)     ; test top bit
     jr z, bankready
     or #1           ; set low bit if required
 bankready:
     ; now A contains desired bank number -- let's select that bank!
-    push hl         ; we'll need this in a moment
-    ld h, #0
-    ld l, a
+    push hl         ; stash this, we'll need it in a moment
+    ld h, #0        ; zero high byte
+    ld l, a         ; bank number now in HL
     call loadbank
-    pop hl          ; recover pointer to data on stack
-    ld d, (hl)
-    res 7, d
+    pop hl          ; HL is now SP+5 again
+    ; now compute bank offset
+    ld d, (hl)      ; load top byte of the word
+    res 7, d        ; clear out the top bit (already used for the bank number)
     dec hl          ; hl is now sp+4
-    ld e, (hl)
-    ; now DE contains the offset
-    ret
+    ld e, (hl)      ; low low byte of the word
+    ret             ; return with bank selected, DE containing the offset (range 0--0x7FFF)
 
 _flashrom_chip_read_bankswitch:
     call selectaddr

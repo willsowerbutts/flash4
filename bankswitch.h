@@ -19,7 +19,6 @@ bool flashrom_block_verify_bankswitch(unsigned long address, unsigned char *buff
 
 extern unsigned int default_mem_bank;
 extern unsigned char bank_switch_method;
-extern unsigned char bank_mask;
 extern unsigned int rom_bank_count;
 
 #endif

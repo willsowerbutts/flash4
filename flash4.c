@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include "libcpm.h"
 #include "z180dma.h"
 #include "bankswitch.h"
@@ -29,6 +30,7 @@ typedef enum {
 
 static action_t action = ACTION_UNKNOWN;
 static access_t access = ACCESS_AUTO;
+static bool chip_count_forced = false;
 static bool verbose = false;
 
 typedef struct {
@@ -244,10 +246,10 @@ bool flashrom_identify(void)
        when multiple chips are installed. Do this only if the user has not
        manually specified multiple chips. rom_bank_count is zero if the BIOS
        cannot report the number of ROM banks. */
-    if(chip_count == 1 && rom_bank_count){
+    if(rom_bank_count && !chip_count_forced){
         chip = rom_bank_count / (flashrom_chip_size >> 15);
         if(chip > 1){
-            printf("Auto-detected %d x 32K ROM banks, %d chips\n", rom_bank_count, chip);
+            printf("BIOS reports %d x 32K ROM banks: %d chips\n", rom_bank_count, chip);
             chip_count = chip;
             flashrom_setup();
         }
@@ -556,13 +558,10 @@ void main(int argc, char *argv[])
             verbose = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
-        else if(strcmp(argv[i], "/2") == 0) {
-            if(chip_count == 1){
-                chip_count = 2;
-                /* with two devices we have one extra address bit */
-                bank_mask = (bank_mask << 1) | 1;
-            }
-        } else if(argv[i][0] == '/'){
+        else if(argv[i][0] == '/' && argv[i][1] != '0' && isdigit(argv[i][1])){
+            chip_count = argv[i][1] - '0';
+            chip_count_forced = true;
+        }else if(argv[i][0] == '/'){
             printf("Unrecognised option \"%s\"\n", argv[i]);
             return;
         }
@@ -668,7 +667,7 @@ void main(int argc, char *argv[])
                "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
                "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
                "\t/P112\t\tForce P112 bank switching\n" \
-               "\t/2\t\tProgram two devices\n");
+               "\t/2 ... /9\tForce programming multiple devices\n");
         return;
     }
 
