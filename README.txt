@@ -6,11 +6,13 @@
 
 FLASH4 has been tested and confirmed working on:
  * N8VEM SBCv2
+ * N8VEM SBCv2 MegaFlash
  * N8VEM N8-2312
  * N8VEM Mark IV SBC
  * DX-Designs P112
  * ZETA SBC v1
  * ZETA SBC v2
+ * RC2014 with 512KB ROM 512KB RAM module
 
 However it remains somewhat experimental. If it works for you, please let me
 know. If it breaks please also let me know so I can fix it!
