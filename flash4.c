@@ -96,7 +96,7 @@ char spinner(void)
 
 void abort_and_solicit_report(void)
 {
-    printf("Please email will@sowerbutts.com if you would like support for your\nsystem added to this program.\n");
+    puts("Please email will@sowerbutts.com if you would like support for your\nsystem added to this program.\n");
     cpm_abort();
 }
 
@@ -234,7 +234,7 @@ bool flashrom_identify(void)
     if(!flashrom_type->chip_id){
         /* we scanned the whole table without finding our chip */
         flashrom_type = NULL;
-        printf("Unknown flash chip.\n");
+        puts("Unknown flash chip.\n");
         return false;
     }
 
@@ -247,7 +247,7 @@ bool flashrom_identify(void)
        manually specified multiple chips. rom_bank_count is zero if the BIOS
        cannot report the number of ROM banks. */
     if(rom_bank_count && !chip_count_forced){
-        chip = rom_bank_count / (flashrom_chip_size >> 15);
+        chip = rom_bank_count / (int)(flashrom_chip_size >> 15);
         if(chip > 1){
             printf("BIOS reports %d x 32K ROM banks: %d chips\n", rom_bank_count, chip);
             chip_count = chip;
@@ -262,8 +262,9 @@ bool flashrom_identify(void)
         if(verbose)
             printf("Chip at 0x%06lX has ID %04X\n", address, flashrom_device_id);
         if(flashrom_device_id != flashrom_type->chip_id){
-            printf("Mismatched chip types: Flash chip %d has ID 0x%04X\n", 1+chip, flashrom_device_id);
-            printf("This program requires all flash chips to be of the same type.\n");
+            printf("Mismatched chip types: Flash chip %d has ID 0x%04X\n" \
+                   "This program requires all flash chips to be of the same type.\n",
+                   1+chip, flashrom_device_id);
             cpm_abort();
         }
     }
@@ -292,7 +293,7 @@ void flashrom_read(cpm_fcb *outfile)
         offset += CPM_BLOCK_SIZE;
     }
 
-    printf("\rRead complete.\n");
+    puts("\rRead complete.\n");
 }
 
 bool read_data_from_file(cpm_fcb *infile, unsigned int block, unsigned int count)
@@ -302,8 +303,10 @@ bool read_data_from_file(cpm_fcb *infile, unsigned int block, unsigned int count
     ptr = filebuffer;
 
     /* give the user something pretty to watch */
-    if(!verbose)
-        printf("\x08%c", spinner());
+    if(!verbose){
+        putchar('\x08');
+        putchar(spinner());
+    }
 
     while(count--){
         r = cpm_f_read_random(infile, block++, ptr);
@@ -354,17 +357,20 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
 
     if( ((flashrom_type->strategy & ST_ERASE_CHIP) && flashrom_type->sector_count != 1) ||
         ((flashrom_type->strategy & ST_PROGRAM_SECTORS) && subsectors_per_sector != 1)){
-        printf("FAILED SANITY CHECKS :(\n");
+        puts("FAILED SANITY CHECKS :(\n");
         abort_and_solicit_report();
     }
 
     sector_count = chip_count * flashrom_type->sector_count;
 
     for(sector=0; (sector < sector_count) && !eof; sector++){
-        if(verbose)
-            printf("%s: sector %d/%d ", perform_write ? "Write" : "Verify", sector, sector_count);
-        else
-            printf("\r%s: sector %d/%d   ", perform_write ? "Write" : "Verify", sector, sector_count);
+        if(!verbose)
+            putchar('\r');
+
+        printf("%s: sector %3d/%d ", perform_write ? "Write" : "Verify", sector, sector_count);
+
+        if(!verbose)
+            puts("  ");
 
         /* verify sector */
         flash_address = flashrom_sector_address(sector);
@@ -385,7 +391,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         }
 
         if(verbose)
-            printf(verify_okay ? "verified\n" : "mismatch, ");
+            puts(verify_okay ? "verified\n" : "mismatch, ");
 
         if(!verify_okay){
             mismatch++;
@@ -408,11 +414,11 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                 }else{
                     if(flashrom_type->strategy & ST_ERASE_CHIP){
                         if(verbose)
-                            printf("chip erase, ");
+                            puts("chip erase, ");
                         flashrom_chip_erase(flash_address);
                     }else{
                         if(verbose)
-                            printf("sector erase, ");
+                            puts("sector erase, ");
                         flashrom_sector_erase(flash_address);
                     }
 
@@ -430,7 +436,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
                     }
 
                     if(verbose)
-                        printf("programmed\n");
+                        puts("programmed\n");
                 }
             }
         }
@@ -452,10 +458,11 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
             printf("\rVerify (%d sectors)", sector_count);
 
         if(mismatch){
-            printf(" complete: %d sectors contain errors.\n", mismatch);
-            printf("\n*** VERIFY FAILED ***\n\n");
+            printf(" complete: %d sectors contain errors.\n" \
+                   "\n*** VERIFY FAILED ***\n\n", 
+                   mismatch);
         }else
-            printf(" complete: OK!\n");
+            puts(" complete: OK!\n");
     }
 
     return mismatch;
@@ -536,7 +543,7 @@ void main(int argc, char *argv[])
     bool allow_partial=false;
     bool rom_mode=false;
 
-    printf("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.2\n\n");
+    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.2\n\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -579,9 +586,9 @@ void main(int argc, char *argv[])
 
     switch(access){
         case ACCESS_Z180DMA:
-            printf("Using Z180 DMA engine.\n");
+            puts("Using Z180 DMA engine.\n");
             if(chip_count != 1){
-                printf("Z180 DMA engine supports programming a single device only.\n");
+                puts("Z180 DMA engine supports programming a single device only.\n");
                 return;
             }
             init_z180dma();
@@ -592,28 +599,28 @@ void main(int argc, char *argv[])
             flashrom_block_verify = flashrom_block_verify_z180dma;
             break;
         case ACCESS_UNABIOS:
-            printf("Using UNA BIOS bank switching.\n");
+            puts("Using UNA BIOS bank switching.\n");
             init_bankswitch(BANKSWITCH_UNABIOS);
             break;
         case ACCESS_ROMWBW_OLD:
-            printf("Using RomWBW (old) bank switching.\n");
+            puts("Using RomWBW (old) bank switching.\n");
             init_bankswitch(BANKSWITCH_ROMWBW_OLD);
             break;
         case ACCESS_ROMWBW_26:
-            printf("Using RomWBW (v2.6+) bank switching.\n");
+            puts("Using RomWBW (v2.6+) bank switching.\n");
             init_bankswitch(BANKSWITCH_ROMWBW_26);
             break;
         case ACCESS_P112:
-            printf("Using P112 bank switching.\n");
+            puts("Using P112 bank switching.\n");
             init_bankswitch(BANKSWITCH_P112);
             break;
         case ACCESS_N8VEM_SBC:
-            printf("Using N8VEM SBC bank switching.\n");
+            puts("Using N8VEM SBC bank switching.\n");
             init_bankswitch(BANKSWITCH_N8VEM_SBC);
             break;
         case ACCESS_NONE:
         case ACCESS_AUTO:
-            printf("Cannot determine how to access your flash ROM chip.\n");
+            puts("Cannot determine how to access your flash ROM chip.\n");
             abort_and_solicit_report();
     }
 
@@ -630,9 +637,9 @@ void main(int argc, char *argv[])
 
     /* identify flash ROM chip */
     if(!flashrom_identify()){
-        printf("Your flash memory chip is not recognised.\n");
+        puts("Your flash memory chip is not recognised.\n");
         if(rom_mode && (action == ACTION_VERIFY || action == ACTION_READ)){
-            printf("Assuming 512KB ROM\n");
+            puts("Assuming 512KB ROM\n");
             flashrom_type = &rom_chip;
             flashrom_setup();
         }else{
@@ -647,7 +654,7 @@ void main(int argc, char *argv[])
 
     /* P112 with ROMs larger than 32KB are limited */
     if(access == ACCESS_P112 && flashrom_size > 32768){
-        printf("P112 can address only first 32KB: Partial mode enabled.\n");
+        puts("P112 can address only first 32KB: Partial mode enabled.\n");
         allow_partial = true;
         chip_count = 1;
         flashrom_chip_size = 32768;
@@ -655,19 +662,19 @@ void main(int argc, char *argv[])
     }
 
     if(action == ACTION_UNKNOWN){
-        printf("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
-               "\tFLASH4 VERIFY filename [options]\n" \
-               "\tFLASH4 WRITE filename [options]\n\n" \
-               "Options (access method is auto-detected by default)\n" \
-               "\t/V\t\tVerbose details about verify/program process\n" \
-               "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
-               "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
-               "\t/Z180DMA\tForce Z180 DMA engine\n" \
-               "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
-               "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
-               "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
-               "\t/P112\t\tForce P112 bank switching\n" \
-               "\t/2 ... /9\tForce programming multiple devices\n");
+        puts("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
+             "\tFLASH4 VERIFY filename [options]\n" \
+             "\tFLASH4 WRITE filename [options]\n\n" \
+             "Options (access method is auto-detected by default)\n" \
+             "\t/V\t\tVerbose details about verify/program process\n" \
+             "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
+             "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
+             "\t/Z180DMA\tForce Z180 DMA engine\n" \
+             "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
+             "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
+             "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
+             "\t/P112\t\tForce P112 bank switching\n" \
+             "\t/2 ... /9\tForce programming multiple devices\n");
         return;
     }
 
@@ -688,9 +695,9 @@ void main(int argc, char *argv[])
                 return;
             }
             if(!check_file_size(&imagefile, allow_partial)){
-                printf("Image file size does not match ROM size: Aborting\n" \
-                       "You may use /PARTIAL to program only the start of the ROM, however for\n" \
-                       "safety reasons the image file must be a multiple of exactly 32KB long.\n");
+                puts("Image file size does not match ROM size: Aborting\n" \
+                     "You may use /PARTIAL to program only the start of the ROM, however for\n" \
+                     "safety reasons the image file must be a multiple of exactly 32KB long.\n");
                 return;
             }
             if(action == ACTION_WRITE)
