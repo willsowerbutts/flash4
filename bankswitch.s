@@ -1,6 +1,7 @@
     .module bankswitch
 
     .globl _bankswitch_get_current_bank
+    .globl _bankswitch_get_rom_bank_count
     .globl _flashrom_chip_read_bankswitch
     .globl _flashrom_chip_write_bankswitch
     .globl _flashrom_block_read_bankswitch
@@ -16,6 +17,7 @@ ROMWBW_OLD_SETBNK  .equ 0xFC06  ; prior to v2.6
 ROMWBW_OLD_GETBNK  .equ 0xFC09  ; prior to v2.6
 ROMWBW_SETBNK      .equ 0xFFF3  ; v2.6 and later (function vector)
 ROMWBW_CURBNK      .equ 0xFFE0  ; v2.6 and later (byte variable)
+ROMWBW_MEMINFO     .equ 0xF8F1  ; v2.6 and later
 
 ; UNA BIOS banked memory functions
 UNABIOS_ENTRY      .equ 0x08 ; entry vector
@@ -100,6 +102,18 @@ unmap_p112_rom:
     ei                  ; interrupts back on
     ret
 
+_bankswitch_get_rom_bank_count:
+    ld a, (_bank_switch_method)
+    cp #3               ; romwbw 2.6+?
+    jr nz, retzero      ; return 0 if not
+    ld bc, #ROMWBW_MEMINFO ; SYSGET MEMINFO
+    rst 8               ; call into RomWBW
+    or a                ; A=0?
+    jr nz, retzero      ; something went wrong
+    ld h, #0
+    ld l, d             ; return number of ROM banks in HL
+    ret
+
     ; return the currently loaded page number
 _bankswitch_get_current_bank:
     ld a, (_bank_switch_method)
@@ -114,6 +128,7 @@ _bankswitch_get_current_bank:
     dec a
     jr z, getbank_n8vem_sbc
     ; well, this is unexpected
+retzero:
     ld hl, #0
     ret
 getbank_n8vem_sbc:

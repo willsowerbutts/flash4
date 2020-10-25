@@ -231,6 +231,18 @@ bool flashrom_identify(void)
     printf("%s\n", flashrom_type->chip_name);
     flashrom_setup();
 
+    /* RomWBW reports the number of 32KB ROM banks, allowing us to auto-detect 
+       when multiple chips are installed. Do this only if the user has not
+       manually specified multiple chips. rom_bank_count is zero if the BIOS
+       cannot report the number of ROM banks. */
+    if(chip_count == 1 && rom_bank_count){
+        chip = rom_bank_count / (flashrom_chip_size >> 15);
+        if(chip > 1){
+            printf("Auto-detected %d banks, %d chips\n", rom_bank_count, chip);
+            chip_count = chip;
+        }
+    }
+
     /* check any additional chips are of the same type */
     for(chip=1; chip < chip_count; chip++){
         address += flashrom_chip_size;
@@ -539,11 +551,11 @@ void main(int argc, char *argv[])
 
     switch(access){
         case ACCESS_Z180DMA:
+            printf("Using Z180 DMA engine.\n");
             if(chip_count != 1){
                 printf("Z180 DMA engine supports programming a single device only.\n");
                 return;
             }
-            printf("Using Z180 DMA engine.\n");
             init_z180dma();
             flashrom_chip_read    = flashrom_chip_read_z180dma;
             flashrom_chip_write   = flashrom_chip_write_z180dma;
