@@ -173,11 +173,15 @@ sector-by-sector operation:
 If you use a flash ROM chip that is not listed above please email me
 (will@sowerbutts.com) and I will try to add support for it.
 
-FLASH4 version 1.3 introduces support for programming multiple flash chips. The
+FLASH4 version 1.3 introduces support for programming multiple flash chips.
+Some machines use multiple flash chips for larger ROM capacity, for example the
 "Megaflash" version of the Retrobrew Computers SBC-V2 contains two flash ROMs
-to allow up to 1MB ROM. If RomWBW 2.6+ is in use and correctly configured then
-multiple chips will be detected automatically. Two-chip operation can be forced
-with the command line option "/2". All flash chips in the system must be of the
+to allow up to 1MB ROM. 
+
+If RomWBW 2.6+ is in use and correctly configured then multiple chips will be
+detected automatically. Multiple chip operation can also be manually enabled
+using the command line options "/1", "/2", "/3" etc up to "/9" to specify the
+number of flash chips to program. All flash chips in the system must be of the
 same type.
 
 
