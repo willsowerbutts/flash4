@@ -131,11 +131,12 @@ void flashrom_chip_erase(unsigned long base_address)
 
 void flashrom_sector_erase(unsigned long address)
 {
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
-    flashrom_chip_write(0x5555, 0x80);
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
+    unsigned long base_address = address & ~(flashrom_chip_size-1);
+    flashrom_chip_write(base_address | 0x5555, 0xAA);
+    flashrom_chip_write(base_address | 0x2AAA, 0x55);
+    flashrom_chip_write(base_address | 0x5555, 0x80);
+    flashrom_chip_write(base_address | 0x5555, 0xAA);
+    flashrom_chip_write(base_address | 0x2AAA, 0x55);
     flashrom_chip_write(address, 0x30);
     flashrom_wait_toggle_bit(address);
 }
@@ -145,11 +146,14 @@ void flashrom_sector_program(unsigned long address, unsigned char *buffer, unsig
 {
     unsigned long prog_address;
 
+    prog_address = address & ~(flashrom_chip_size-1);
+
+    flashrom_chip_write(prog_address | 0x5555, 0xAA);
+    flashrom_chip_write(prog_address | 0x2AAA, 0x55);
+    flashrom_chip_write(prog_address | 0x5555, 0xA0); /* software data protection activated */
+
     prog_address = address;
 
-    flashrom_chip_write(0x5555, 0xAA);
-    flashrom_chip_write(0x2AAA, 0x55);
-    flashrom_chip_write(0x5555, 0xA0); /* software data protection activated */
     while(count--){
         flashrom_chip_write(prog_address++, *(buffer++));
     }
