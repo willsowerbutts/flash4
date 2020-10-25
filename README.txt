@@ -94,6 +94,11 @@ of the named file. The file size must exactly match the size of the ROM chip.
 This will read out the entire flash ROM contents and write it to the named
 file.
 
+In all cases, any options must be specified after the filename.
+
+You may specify the "/V" (verbose) option to make FLASH4 print one line per
+sector, giving a detailed log.
+
 If your ROM chip is larger than the image you wish to write, use the "/PARTIAL"
 (or "/P") command line option. To avoid accidentally flashing the wrong file,
 the image file must be an exact multiple of 32KB in length. The portion of the
