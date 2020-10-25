@@ -94,7 +94,7 @@ of the named file. The file size must exactly match the size of the ROM chip.
 This will read out the entire flash ROM contents and write it to the named
 file.
 
-In all cases, any options must be specified after the filename.
+In all cases, any options must always be specified AFTER the filename.
 
 You may specify the "/V" (verbose) option to make FLASH4 print one line per
 sector, giving a detailed log.
@@ -133,8 +133,6 @@ method automatically.
 = Supported chips and features =
 
 FLASH4 will interrogate your flash ROM chip to identify it automatically.
-FLASH4 assumes that you have a single flash ROM device and it is located at the
-bottom of the physical memory map.
 
 FLASH4 does not support setting or resetting the protection bits on individual
 sectors within Flash ROM devices. If your Flash ROM chip has protected sectors
@@ -145,7 +143,7 @@ AT29C series chips employ an optional "software data protection" feature. This
 is supported by FLASH4 and is left activated after programming the chip to
 prevent accidental reprogramming of sectors.
 
-The following chips are supported:
+The following chips are fully supported:
 
   AT29F010
   AT29F040
@@ -160,12 +158,12 @@ The following chips are supported:
   AT29C010
   AT29C020
 
-The following chips are supported but have unequal sector sizes; FLASH4 will
+The following chips are supported, but have unequal sector sizes. FLASH4 will
 only erase and reprogram the entire chip at once rather than its normal
 sector-by-sector operation:
 
-  AT49F001NT
   AT49F001N
+  AT49F001NT
   AT49F002N
   AT49F002NT
   AT49F040
@@ -178,11 +176,11 @@ Some machines use multiple flash chips for larger ROM capacity, for example the
 "Megaflash" version of the Retrobrew Computers SBC-V2 contains two flash ROMs
 to allow up to 1MB ROM. 
 
-If RomWBW 2.6+ is in use and correctly configured then multiple chips will be
-detected automatically. Multiple chip operation can also be manually enabled
-using the command line options "/1", "/2", "/3" etc up to "/9" to specify the
-number of flash chips to program. All flash chips in the system must be of the
-same type.
+If RomWBW 2.6+ is in use, and correctly configured, then multiple flash chips
+can be detected automatically. Multiple chip operation can also be manually
+enabled using the command line options "/1", "/2", "/3" etc up to "/9" to
+specify the number of flash chips to program. All flash chips in the system
+must be of the same type.
 
 
 = Compiling =
