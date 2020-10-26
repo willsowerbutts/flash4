@@ -562,7 +562,7 @@ void main(int argc, const char *argv[])
     bool allow_partial=false;
     bool rom_mode=false;
 
-    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.3\n");
+    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.4\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
@@ -698,7 +698,7 @@ void main(int argc, const char *argv[])
         case ACTION_READ:
             cpm_f_delete(&imagefile);     /* remove existing file first */
             if(cpm_f_create(&imagefile)){
-                printf("Cannot create file \"%s\".\n", argv[2]);
+                printf("Cannot create file \"%s\".\n", filename);
                 return;
             }
             flashrom_read(&imagefile);
@@ -706,7 +706,7 @@ void main(int argc, const char *argv[])
         case ACTION_VERIFY:
         case ACTION_WRITE:
             if(cpm_f_open(&imagefile)){
-                printf("Cannot open file \"%s\".\n", argv[2]);
+                printf("Cannot open file \"%s\".\n", filename);
                 return;
             }
             if(!check_file_size(&imagefile, allow_partial)){
