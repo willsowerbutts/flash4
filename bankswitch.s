@@ -189,7 +189,7 @@ bankready:
     res 7, d        ; clear out the top bit (already used for the bank number)
     dec hl          ; HL is now SP+4
     ld e, (hl)      ; load low byte of the word
-    ret             ; return with bank selected, DE containing the offset (range 0--0x7FFF)
+    ret             ; return with bank selected, DE = offset (0--0x7FFF), HL = SP+4
 
 _flashrom_chip_read_bankswitch:
     call selectaddr
