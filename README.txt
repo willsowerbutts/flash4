@@ -82,19 +82,20 @@ The three basic operations are:
 
   FLASH4 WRITE filename [options]
 
-This will rewrite the flash ROM contents from the named file. The file size
-must exactly match the size of the ROM chip. After the write operation, a
-verify operation will be performed automatically.
-
   FLASH4 VERIFY filename [options]
-
-This will read out the flash ROM contents and report if it matches the contents
-of the named file. The file size must exactly match the size of the ROM chip.
 
   FLASH4 READ filename [options]
 
-This will read out the entire flash ROM contents and write it to the named
-file.
+The WRITE command will rewrite the flash ROM contents from the named file. The
+file size must exactly match the size of the ROM chip. After the WRITE
+operation, a VERIFY operation will be performed automatically.
+
+The VERIFY command will read out the flash ROM contents and report if it
+matches the contents of the named file. The file size must exactly match the
+size of the ROM chip.
+
+The READ command will read out the entire flash ROM contents and write it to
+the named file.
 
 FLASH4 will auto-detect most parameters so additional options should not
 normally be required.

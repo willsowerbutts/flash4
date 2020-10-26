@@ -562,7 +562,7 @@ void main(int argc, const char *argv[])
     bool allow_partial=false;
     bool rom_mode=false;
 
-    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.2\n");
+    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.3\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
