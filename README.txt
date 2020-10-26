@@ -25,9 +25,8 @@ or from an image file stored on a CP/M filesystem. It is intended for in-system
 programming of Flash ROM chips on Z80 and Z180 systems.
 
 FLASH4 aims to support a range of Flash ROM chips and machines. Ideally I would
-like to support all Flash ROM chips that are in use in Z80/Z180 machines. If
-FLASH4 does not support your machine please let me know and I will try to add
-support.
+like to support all Z80/Z180 machines. If FLASH4 does not support your machine
+please let me know and I will try to add support.
 
 When writing to the Flash ROM, FLASH4 will only reprogram the sectors whose
 contents have changed. This helps to reduce wear on the flash memory, makes the
