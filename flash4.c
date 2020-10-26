@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <ctype.h>
 #include "libcpm.h"
 #include "z180dma.h"
 #include "bankswitch.h"
@@ -566,7 +565,7 @@ void main(int argc, char *argv[])
             verbose = true;
         else if(strcmp(argv[i], "/P") == 0 || strcmp(argv[i], "/PARTIAL") == 0)
             allow_partial = true;
-        else if(argv[i][0] == '/' && argv[i][1] != '0' && isdigit(argv[i][1])){
+        else if(argv[i][0] == '/' && argv[i][1] >= '1' && argv[i][1] <= '9'){
             chip_count = argv[i][1] - '0';
             chip_count_forced = true;
         }else if(argv[i][0] == '/'){
