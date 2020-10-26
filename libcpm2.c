@@ -2,9 +2,9 @@
 #include <ctype.h>
 #include "libcpm.h"
 
-void cpm_f_prepare(cpm_fcb *fcb, char *name)
+void cpm_f_prepare(cpm_fcb *fcb, const char *name)
 {
-    char *p;
+    const char *p;
     int i;
 
     memset(fcb, 0, sizeof(cpm_fcb));

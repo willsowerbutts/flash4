@@ -97,8 +97,8 @@ of the named file. The file size must exactly match the size of the ROM chip.
 This will read out the entire flash ROM contents and write it to the named
 file.
 
-In all cases, any options must always be specified AFTER the filename. FLASH4
-will auto-detect most parameters so options should not normally be required.
+FLASH4 will auto-detect most parameters so additional options should not
+normally be required.
 
 The "/V" (verbose) option makes FLASH4 print one line per sector, giving a
 detailed log of what it did.

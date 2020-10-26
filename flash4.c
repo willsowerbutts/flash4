@@ -95,6 +95,24 @@ char spinner(void)
     return spinner_char[spinner_pos];
 }
 
+void help(void)
+{
+    puts("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
+            "\tFLASH4 VERIFY filename [options]\n" \
+            "\tFLASH4 WRITE filename [options]\n\n" \
+            "Options (access method is auto-detected by default)\n" \
+            "\t/V\t\tVerbose details about verify/program process\n" \
+            "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
+            "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
+            "\t/Z180DMA\tForce Z180 DMA engine\n" \
+            "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
+            "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
+            "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
+            "\t/P112\t\tForce P112 bank switching\n" \
+            "\t/2 ... /9\tForce programming multiple devices");
+    cpm_abort();
+}
+
 void abort_and_solicit_report(void)
 {
     puts("Please email will@sowerbutts.com if you would like support for your\nsystem added to this program.");
@@ -535,11 +553,12 @@ access_t access_auto_select(void)
     return ACCESS_NONE;
 }
 
-void main(int argc, char *argv[])
+void main(int argc, const char *argv[])
 {
     int i;
     unsigned int mismatch;
     cpm_fcb imagefile;
+    const char *filename = NULL;
     bool allow_partial=false;
     bool rom_mode=false;
 
@@ -570,7 +589,26 @@ void main(int argc, char *argv[])
             chip_count_forced = true;
         }else if(argv[i][0] == '/'){
             printf("Unrecognised option \"%s\"\n", argv[i]);
-            return;
+            help();
+        }else{
+            /* non-option command line parameters */
+            if(action == ACTION_UNKNOWN){ /* action comes first */
+                if(strcmp(argv[i], "READ") == 0)
+                    action = ACTION_READ;
+                else if(strcmp(argv[i], "VERIFY") == 0)
+                    action = ACTION_VERIFY;
+                else if(strcmp(argv[i], "WRITE") == 0)
+                    action = ACTION_WRITE;
+                else{
+                    printf("Unrecognised command \"%s\"\n", argv[i]);
+                    help();
+                }
+            }else if(filename == NULL){
+                filename = argv[i];
+            }else{
+                printf("Unexpected command line argument \"%s\"\n", argv[i]);
+                help();
+            }
         }
     }
 
@@ -624,17 +662,6 @@ void main(int argc, char *argv[])
             abort_and_solicit_report();
     }
 
-    /* determine action */
-    if(argc >= 3){
-        cpm_f_prepare(&imagefile, argv[2]);
-        if(strcmp(argv[1], "READ") == 0)
-            action = ACTION_READ;
-        else if(strcmp(argv[1], "VERIFY") == 0)
-            action = ACTION_VERIFY;
-        else if(strcmp(argv[1], "WRITE") == 0)
-            action = ACTION_WRITE;
-    }
-
     /* identify flash ROM chip */
     if(!flashrom_identify()){
         puts("Your flash memory chip is not recognised.");
@@ -661,22 +688,10 @@ void main(int argc, char *argv[])
         flashrom_size = 32768;
     }
 
-    if(action == ACTION_UNKNOWN){
-        puts("\nSyntax:\n\tFLASH4 READ filename [options]\n" \
-             "\tFLASH4 VERIFY filename [options]\n" \
-             "\tFLASH4 WRITE filename [options]\n\n" \
-             "Options (access method is auto-detected by default)\n" \
-             "\t/V\t\tVerbose details about verify/program process\n" \
-             "\t/PARTIAL\tAllow flashing a large ROM from a smaller image file\n" \
-             "\t/ROM\t\tAllow read-only use of unknown chip types\n" \
-             "\t/Z180DMA\tForce Z180 DMA engine\n" \
-             "\t/UNABIOS\tForce UNA BIOS bank switching\n" \
-             "\t/ROMWBW\t\tForce RomWBW (v2.6+) bank switching\n" \
-             "\t/ROMWBWOLD\tForce RomWBW (v2.5 and earlier) bank switching\n" \
-             "\t/P112\t\tForce P112 bank switching\n" \
-             "\t/2 ... /9\tForce programming multiple devices");
-        return;
-    }
+    if(action == ACTION_UNKNOWN || !filename)
+        help();
+
+    cpm_f_prepare(&imagefile, filename);
 
     /* execute action */
     switch(action){

@@ -32,7 +32,7 @@ typedef struct cpm_fcb {
 } cpm_fcb;
 
 void cpm_abort(void);
-void cpm_f_prepare(cpm_fcb *fcb, char *name);         /* set filename in FCB, etc */
+void cpm_f_prepare(cpm_fcb *fcb, const char *name);         /* set filename in FCB, etc */
 int cpm_f_delete(cpm_fcb *fcb);                       /* delete a file */
 int cpm_f_open(cpm_fcb *fcb);                         /* open a file */
 int cpm_f_create(cpm_fcb *fcb);                       /* create a file */
