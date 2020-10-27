@@ -409,7 +409,7 @@ unsigned int flashrom_verify_and_write(cpm_fcb *infile, bool perform_write)
         }
 
         if(verbose)
-            printf(verify_okay ? "verified\n" : "mismatch, ");
+            printf(verify_okay ? "verified\n" : (perform_write ? "mismatch, " : "FAILED\n"));
 
         if(!verify_okay){
             mismatch++;
