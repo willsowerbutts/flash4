@@ -144,7 +144,7 @@ void flashrom_wait_toggle_bit(unsigned long address)
 
 unsigned long chip_base_address(unsigned long address)
 {
-    return address & ~(flashrom_chip_size-1);
+    return address & (~0x7FFFUL);
 }
 
 void flashrom_chip_erase(unsigned long base_address)
