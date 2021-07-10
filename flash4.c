@@ -58,11 +58,12 @@ static flashrom_chip_t flashrom_chips[] = {
     { 0x1FDA, "AT29C020",      2, 1024, ST_PROGRAM_SECTORS },
     { 0x2020, "M29F010",     128,    8, ST_NORMAL },
     { 0x20E2, "M29F040",     512,    8, ST_NORMAL },
+    { 0x37A4, "A29010B",     256,    4, ST_NORMAL },
+    { 0x3786, "A29040B",     512,    8, ST_NORMAL },
     { 0xBFB5, "39F010",       32,   32, ST_NORMAL },
     { 0xBFB6, "39F020",       32,   64, ST_NORMAL },
     { 0xBFB7, "39F040",       32,  128, ST_NORMAL },
     { 0xC2A4, "MX29F040",    512,    8, ST_NORMAL },
-    { 0x3786, "A29040B",     512,    8, ST_NORMAL },
     /* terminate the list */
     { 0x0000, NULL,            0,    0, 0 }
 };
