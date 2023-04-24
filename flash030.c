@@ -35,7 +35,7 @@ unsigned char volatile *flashrom_mapping;
 typedef struct {
     unsigned int chip_id;
     char *chip_name;
-    unsigned int sector_size;  /* in multiples of 128 bytes */
+    unsigned int sector_size;  /* in bytes */
     unsigned int sector_count;
     unsigned char strategy;
 } flashrom_chip_t; 
@@ -59,6 +59,8 @@ static flashrom_chip_t flashrom_chips[] = {
     { 0x1FDA, "AT29C020",        256, 1024, ST_PROGRAM_SECTORS },
     { 0x2020, "M29F010",       16384,    8, ST_NORMAL },
     { 0x20E2, "M29F040",       65536,    8, ST_NORMAL },
+    { 0x37A4, "A29010B",       32768,    4, ST_NORMAL },
+    { 0x3786, "A29040B",       65536,    8, ST_NORMAL },
     { 0xBFB5, "39F010",         4096,   32, ST_NORMAL },
     { 0xBFB6, "39F020",         4096,   64, ST_NORMAL },
     { 0xBFB7, "39F040",         4096,  128, ST_NORMAL },     /* recommended device */
