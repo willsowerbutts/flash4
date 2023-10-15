@@ -61,9 +61,12 @@ static flashrom_chip_t flashrom_chips[] = {
     { 0x20E2, "M29F040",       65536,    8, ST_NORMAL },
     { 0x37A4, "A29010B",       32768,    4, ST_NORMAL },
     { 0x3786, "A29040B",       65536,    8, ST_NORMAL },
-    { 0xBFB5, "39F010",         4096,   32, ST_NORMAL },
-    { 0xBFB6, "39F020",         4096,   64, ST_NORMAL },
-    { 0xBFB7, "39F040",         4096,  128, ST_NORMAL },     /* recommended device */
+    { 0xBFD5, "39VF010",        4096,   32, ST_NORMAL },
+    { 0xBFD6, "39VF020",        4096,   64, ST_NORMAL },
+    { 0xBFD7, "39VF040",        4096,  128, ST_NORMAL },
+    { 0xBFB5, "39SF010",        4096,   32, ST_NORMAL },
+    { 0xBFB6, "39SF020",        4096,   64, ST_NORMAL },
+    { 0xBFB7, "39SF040",        4096,  128, ST_NORMAL },     /* recommended device */
     { 0xC2A4, "MX29F040",      65536,    8, ST_NORMAL },
     /* terminate the list */
     { 0x0000, NULL,            0,    0, 0 }
