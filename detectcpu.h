@@ -2,7 +2,8 @@
 #define __CPU_DOT_H__
 
 #include <stdbool.h>
+#include "calling.h"
 
-bool detect_z180_cpu(void);
+bool detect_z180_cpu(void) CALLING;
 
 #endif

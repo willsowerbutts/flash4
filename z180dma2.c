@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "z180dma.h"
 #include "buffers.h"
+#include "calling.h"
 
 static unsigned char byte_buffer;        /* buffer for single byte to transfer to/from flash memory */
 static unsigned long byte_buffer_paddr;  /* physical address of byte_buffer */
@@ -10,7 +11,7 @@ static unsigned long byte_buffer_paddr;  /* physical address of byte_buffer */
 #define flashrom_to_physical(addr) (addr) /* translate flash address to physical memory address */
 
 /* determine the physical address corresponding with a virtual address in the current MMU mapping */
-unsigned long virtual_to_physical(void *_vaddr)
+static unsigned long virtual_to_physical(void *_vaddr)
 {
     unsigned int vaddr=(unsigned int)_vaddr;
     unsigned char cbar;
@@ -32,24 +33,24 @@ unsigned long virtual_to_physical(void *_vaddr)
     return ((unsigned long)z180_cbr() << 12) + vaddr;
 }
 
-void flashrom_chip_write_z180dma(unsigned long address, unsigned char value)
+void flashrom_chip_write_z180dma(unsigned long address, unsigned char value) CALLING
 {
     byte_buffer = value;
     dma_memory(byte_buffer_paddr, flashrom_to_physical(address), 1);
 }
 
-unsigned char flashrom_chip_read_z180dma(unsigned long address)
+unsigned char flashrom_chip_read_z180dma(unsigned long address) CALLING
 {
     dma_memory(flashrom_to_physical(address), byte_buffer_paddr, 1);
     return byte_buffer;
 }
 
-void flashrom_block_read_z180dma(unsigned long address, unsigned char *buffer, unsigned int length)
+void flashrom_block_read_z180dma(unsigned long address, unsigned char *buffer, unsigned int length) CALLING
 {
     dma_memory(flashrom_to_physical(address), virtual_to_physical(buffer), length);
 }
 
-bool flashrom_block_verify_z180dma(unsigned long address, unsigned char *buffer, unsigned int length)
+bool flashrom_block_verify_z180dma(unsigned long address, unsigned char *buffer, unsigned int length) CALLING
 {
     unsigned int bytes;
 
@@ -70,7 +71,7 @@ bool flashrom_block_verify_z180dma(unsigned long address, unsigned char *buffer,
     return true;
 }
 
-void flashrom_program_byte_z180dma(unsigned long address, unsigned char value)
+void flashrom_program_byte_z180dma(unsigned long address, unsigned char value) CALLING
 {
     unsigned char a, b;
 
@@ -91,7 +92,7 @@ void flashrom_program_byte_z180dma(unsigned long address, unsigned char value)
     }while(a != b);
 }
 
-void flashrom_block_write_z180dma(unsigned long address, unsigned char *buffer, unsigned int length)
+void flashrom_block_write_z180dma(unsigned long address, unsigned char *buffer, unsigned int length) CALLING
 {
     unsigned long offset = address;
 

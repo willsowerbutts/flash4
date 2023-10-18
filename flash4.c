@@ -6,6 +6,7 @@
 #include "bankswitch.h"
 #include "detectcpu.h"
 #include "buffers.h"
+#include "calling.h"
 
 typedef enum { 
     ACTION_UNKNOWN, 
@@ -83,11 +84,11 @@ static unsigned long flashrom_size;        /* total size of all chips, in bytes;
 static unsigned long flashrom_sector_size; /* chip sector size, in bytes */
 
 /* function pointers set at runtime to switch between bank switching and Z180 DMA engine */
-void (*flashrom_chip_write)(unsigned long address, unsigned char value) = NULL;
-unsigned char (*flashrom_chip_read)(unsigned long address) = NULL;
-void (*flashrom_block_read)(unsigned long address, unsigned char *buffer, unsigned int length) = NULL;
-bool (*flashrom_block_verify)(unsigned long address, unsigned char *buffer, unsigned int length) = NULL;
-void (*flashrom_block_write)(unsigned long address, unsigned char *buffer, unsigned int length) = NULL;
+void (*flashrom_chip_write)(unsigned long address, unsigned char value) CALLING = NULL;
+unsigned char (*flashrom_chip_read)(unsigned long address) CALLING = NULL;
+void (*flashrom_block_read)(unsigned long address, unsigned char *buffer, unsigned int length) CALLING = NULL;
+bool (*flashrom_block_verify)(unsigned long address, unsigned char *buffer, unsigned int length) CALLING = NULL;
+void (*flashrom_block_write)(unsigned long address, unsigned char *buffer, unsigned int length) CALLING = NULL;
 
 /* useful to provide some feedback that something is actually happening with large-sector devices */
 #define SPINNER_LENGTH 4
@@ -558,7 +559,7 @@ access_t access_auto_select(void)
     return ACCESS_NONE;
 }
 
-void main(int argc, const char *argv[])
+void main(int argc, const char *argv[]) CALLING
 {
     int i;
     unsigned int mismatch;
@@ -567,7 +568,7 @@ void main(int argc, const char *argv[])
     bool allow_partial=false;
     bool rom_mode=false;
 
-    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.6\n");
+    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.7\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */

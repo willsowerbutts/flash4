@@ -1,6 +1,7 @@
 #ifndef __LIBCPM_DOT_H__
 #define __LIBCPM_DOT_H__
 
+#include "calling.h"
 #define CPM_BLOCK_SIZE 128
 
 // addresses of interesting data in the zero page
@@ -31,20 +32,20 @@ typedef struct cpm_fcb {
     unsigned char r2;       /* random access record number (high byte) */
 } cpm_fcb;
 
-void cpm_abort(void);
-void cpm_f_prepare(cpm_fcb *fcb, const char *name);         /* set filename in FCB, etc */
-int cpm_f_delete(cpm_fcb *fcb);                       /* delete a file */
-int cpm_f_open(cpm_fcb *fcb);                         /* open a file */
-int cpm_f_create(cpm_fcb *fcb);                       /* create a file */
-int cpm_f_close(cpm_fcb *fcb);                        /* close a file */
-unsigned int cpm_f_getsize(cpm_fcb *fcb);             /* return file size, in 128-byte blocks */
+void cpm_abort(void) CALLING;
+void cpm_f_prepare(cpm_fcb *fcb, const char *name);                 /* (note: C) set filename in FCB, etc */
+int cpm_f_delete(cpm_fcb *fcb) CALLING;                       /* delete a file */
+int cpm_f_open(cpm_fcb *fcb) CALLING;                         /* open a file */
+int cpm_f_create(cpm_fcb *fcb) CALLING;                       /* create a file */
+int cpm_f_close(cpm_fcb *fcb) CALLING;                        /* close a file */
+unsigned int cpm_f_getsize(cpm_fcb *fcb) CALLING;             /* return file size, in 128-byte blocks */
 
 /* sequential block I/O */
-unsigned char cpm_f_read_next(cpm_fcb *fcb, char *buffer);      /* read the next 128-byte block from file */
-unsigned char cpm_f_write_next(cpm_fcb *fcb, char *buffer);     /* write the next 128-byte block to file */
+unsigned char cpm_f_read_next(cpm_fcb *fcb, char *buffer) CALLING;      /* read the next 128-byte block from file */
+unsigned char cpm_f_write_next(cpm_fcb *fcb, char *buffer) CALLING;     /* write the next 128-byte block to file */
 
 /* random block I/O */
-unsigned char cpm_f_read_random(cpm_fcb *fcb, unsigned int block, char *buffer);    /* read 128-byte block from file */
-unsigned char cpm_f_write_random(cpm_fcb *fcb, unsigned int block, char *buffer);   /* write 128-byte block to file */
+unsigned char cpm_f_read_random(cpm_fcb *fcb, unsigned int block, char *buffer) CALLING;    /* read 128-byte block from file */
+unsigned char cpm_f_write_random(cpm_fcb *fcb, unsigned int block, char *buffer) CALLING;   /* write 128-byte block to file */
 
 #endif
