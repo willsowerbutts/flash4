@@ -206,6 +206,11 @@ void delay10ms(void)
         b++;
 }
 
+unsigned int flashrom_read_id_word(unsigned long base_address)
+{
+    return ((unsigned int)flashrom_chip_read(base_address) << 8) | flashrom_chip_read(base_address | 0x0001);
+}
+
 unsigned int flashrom_identify_device(unsigned long base_address)
 {
     unsigned int flashrom_device_id;
@@ -219,7 +224,7 @@ unsigned int flashrom_identify_device(unsigned long base_address)
     delay10ms();
 
     /* load manufacturer and device IDs */
-    flashrom_device_id = ((unsigned int)flashrom_chip_read(base_address) << 8) | flashrom_chip_read(base_address | 0x0001);
+    flashrom_device_id = flashrom_read_id_word(base_address);
 
     /* put the flash memory back into read mode */
     flashrom_chip_write(base_address | 0x5555, 0xF0);
@@ -247,9 +252,11 @@ void flashrom_setup(void)
 bool flashrom_identify(void)
 {
     unsigned int flashrom_device_id;
+    unsigned int flashrom_mem_contents;
     unsigned long address = 0;
     int chip;
 
+    flashrom_mem_contents = flashrom_read_id_word(address);
     flashrom_device_id = flashrom_identify_device(address);
 
     printf("Flash memory chip ID is 0x%04X: ", flashrom_device_id);
@@ -262,6 +269,9 @@ bool flashrom_identify(void)
         /* we scanned the whole table without finding our chip */
         flashrom_type = NULL;
         puts("Unknown flash chip.");
+        /* some boards have jumpers to switch /WE between being tied high or connected to CPU /WR */
+        if(flashrom_device_id == flashrom_mem_contents)
+            puts("Chip ID matches memory contents: Check ROM's Write Enable pin is connected.");
         return false;
     }
 
@@ -568,7 +578,7 @@ void main(int argc, const char *argv[]) CALLING
     bool allow_partial=false;
     bool rom_mode=false;
 
-    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.7\n");
+    puts("FLASH4 by Will Sowerbutts <will@sowerbutts.com> version 1.3.8\n");
 
     /* determine access mode */
     for(i=1; i<argc; i++){ /* check for manual mode override */
