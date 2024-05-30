@@ -317,7 +317,9 @@ writewait:
     jr nz, writenext
     jr putback
 
-; determine if IRQs are enabled -- this code based on Alan Cox's code from Fuzix
+; determine if IRQs are enabled -- based on Z80 Family Q&A
+; page 3-131 http://z80.info/zip/ZilogProductSpecsDatabook129-143.pdf
+; NB this will NOT work if located at addresses 0x0000-0x00FF.
 _bankswitch_check_irq_flag:
     xor a           ; NMOS Z80 bug work around as per CPU manual
     push af
