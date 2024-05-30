@@ -18,6 +18,9 @@ void init_bankswitch(unsigned char method)
     if(bank_switch_method == BANKSWITCH_UNABIOS)
         una_entry_vector = *((unsigned int*)9);
 
+    bankswitch_check_irq_flag();
+    printf("IRQs are %sabled\n", irq_enabled_flag ? "en":"dis");
+
     default_mem_bank = bankswitch_get_current_bank();
     rom_bank_count = bankswitch_get_rom_bank_count();
 }

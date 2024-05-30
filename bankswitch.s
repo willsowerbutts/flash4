@@ -10,6 +10,8 @@
     .globl _default_mem_bank
     .globl _bank_switch_method
     .globl _una_entry_vector
+    .globl _bankswitch_check_irq_flag
+    .globl _irq_enabled_flag
 
 ; RomWBW entry vectors
 ROMWBW_OLD_SETBNK  .equ 0xFC06  ; prior to v2.6
@@ -82,7 +84,6 @@ loadbank_p112:
     or l
     jr nz, unmap_p112_rom
 map_p112_rom:
-    di                  ; disable interrupts
     xor a
     out0 (P112_BBR), a  ; map ROM into banked area
     in0 a, (P112_SCR)
@@ -98,7 +99,6 @@ unmap_p112_rom:
     or a, #0x08         ; disable EEPROM
     out0 (P112_SCR), a
     out0 (P112_DCNTL), h
-    ei                  ; interrupts back on
     ret
 
 _bankswitch_get_rom_bank_count:
@@ -160,6 +160,7 @@ getbank_p112:
     ret
 
 selectaddr:
+    ; compute bank number, disable interrupts, select it
     ; 32-bit address is at sp+4 through sp+7
     ; The code below is limited to 256 x 32KB banks = 8MB
     ; eg for flash address = 0x654321:
@@ -182,7 +183,8 @@ bankready:
     push hl         ; stash this, we'll need it in a moment
     ld h, #0        ; zero high byte
     ld l, a         ; bank number now in HL
-    call loadbank
+    di              ; disable interrupts; the vector or ISR may be in banked memory
+    call loadbank   ; switch memory bank
     pop hl          ; HL is now SP+5 again
     ; now compute bank offset
     ld d, (hl)      ; load top byte of the word
@@ -223,13 +225,19 @@ _flashrom_block_read_bankswitch:
     call selectaddr
     call targetlength
     ldir            ; copy copy copy
+    ; fall through to putback
 putback:
+    ; restore original memory bank, restore interrupt flag
     push hl
     ; put our memory back in the banked region
     ld hl, (_default_mem_bank)
     call loadbank
     pop hl ; recover value read from flash
-    ret
+    ld a, (_irq_enabled_flag)
+    bit 0, a
+    ret z  ; return now if IRQs were not previously enabled
+    ei     ; re-enable interrupts
+    ret    ; return
 
 _flashrom_block_verify_bankswitch:
     call selectaddr
@@ -308,3 +316,27 @@ writewait:
     or c
     jr nz, writenext
     jr putback
+
+; determine if IRQs are enabled -- this code based on Alan Cox's code from Fuzix
+_bankswitch_check_irq_flag:
+    xor a           ; NMOS Z80 bug work around as per CPU manual
+    push af
+    pop af          ; clear byte on stack below our usage
+    ld a, i         ; during LD A, I instruction the P/V flag is set with the value of IFF2
+    jp pe, irq_ena  ; P/V is now IFF2, if irqs on return is safe
+    dec sp          ; the CPU may have lied due to an erratum
+    dec sp
+    pop af          ; see if anyone pushed a return address
+    and a
+    jr nz, irq_ena  ; someone did - IRQs were enabled then
+    ; if we get here, IRQs are disabled
+    xor a
+    jr irqdone
+irq_ena:
+    ld a, #0x01
+irqdone:
+    ld (_irq_enabled_flag), a
+    ret
+
+    .area _DATA
+_irq_enabled_flag:      .ds 1

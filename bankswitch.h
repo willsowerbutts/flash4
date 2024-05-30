@@ -10,6 +10,7 @@
 #define BANKSWITCH_N8VEM_SBC    4
 
 void init_bankswitch(unsigned char method);
+void bankswitch_check_irq_flag(void);
 unsigned int bankswitch_get_current_bank(void) CALLING;
 unsigned int bankswitch_get_rom_bank_count(void) CALLING; /* only implemented for RomWBW 2.6+ */
 
@@ -22,5 +23,6 @@ bool flashrom_block_verify_bankswitch(unsigned long address, unsigned char *buff
 extern unsigned int default_mem_bank;
 extern unsigned char bank_switch_method;
 extern unsigned int rom_bank_count;
+extern bool irq_enabled_flag;
 
 #endif
